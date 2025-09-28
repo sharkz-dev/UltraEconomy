@@ -40,7 +40,7 @@ public class DepositCommand {
                     .executes(context -> {
                       CompletableFuture.runAsync(() -> {
                           var target = StringArgumentType.getString(context, "player");
-                          if (!UltraEconomyApi.existPlayerWithName(target)) {
+                          if (!UltraEconomyApi.existsPlayerWithName(target)) {
                             context.getSource().sendMessage(Text.literal("§cPlayer not found"));
                             return;
                           }

@@ -1,10 +1,11 @@
 package com.kingpixel.ultraeconomy.config;
 
+import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.util.Utils;
 import com.kingpixel.ultraeconomy.UltraEconomy;
 import com.kingpixel.ultraeconomy.models.Currency;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,6 +40,9 @@ public class Currencies {
           );
           currency.setId(file.getName().replace(".json", ""));
           CURRENCIES.put(currency.getId(), currency);
+          for (String allowedId : currency.getAllowedIds()) {
+            CURRENCIES.put(allowedId, currency);
+          }
           writeCurrency(currency);
         } catch (Exception e) {
           e.printStackTrace();
@@ -60,6 +64,26 @@ public class Currencies {
   }
 
   public static @Nullable Currency getCurrency(String currency) {
-    return CURRENCIES.get(currency);
+    Currency curr = CURRENCIES.get(currency);
+    if (curr == null) {
+      CobbleUtils.LOGGER.warn(UltraEconomy.MOD_ID, "Currency not found: " + currency);
+    }
+    if (curr == null) {
+      for (Map.Entry<String, Currency> entry : CURRENCIES.entrySet()) {
+        var value = entry.getValue();
+        for (String id : value.getAllowedIds()) {
+          if (id.equalsIgnoreCase(currency)) {
+            curr = value;
+            break;
+          }
+        }
+        if (curr != null) break;
+      }
+      if (curr != null) CURRENCIES.put(currency, curr);
+    }
+    if (curr == null) {
+      CobbleUtils.LOGGER.warn(UltraEconomy.MOD_ID, "Currency not found: " + currency);
+    }
+    return curr;
   }
 }

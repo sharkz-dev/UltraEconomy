@@ -43,7 +43,7 @@ public class SetCommand {
                           var target = StringArgumentType.getString(context, "player");
                           var currency = Currencies.getCurrency(StringArgumentType.getString(context, "currency"));
                           var amountStr = StringArgumentType.getString(context, "amount");
-                          if (!UltraEconomyApi.existPlayerWithName(target)) {
+                          if (!UltraEconomyApi.existsPlayerWithName(target)) {
                             context.getSource().sendMessage(Text.literal("§cPlayer not found"));
                             return;
                           }

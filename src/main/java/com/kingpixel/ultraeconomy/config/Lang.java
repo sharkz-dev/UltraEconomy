@@ -19,52 +19,63 @@ import java.util.concurrent.CompletableFuture;
 public class Lang {
   private static final String PATH = UltraEconomy.PATH + "/lang/";
   private String prefix;
+
+  // Mensajes de balance
   private HiperMessage messageBalance = HiperMessageBuilder.builder()
     .setType(MessageType.CHAT)
-    .setRawMessage("%prefix%Your balance is: &a%balance%")
+    .setRawMessage("%prefix%<#FFD700>💰 Balance: <#00FFAA>%balance% <#FFD700>coins")
     .build();
+
   private HiperMessage messageSetBalance = HiperMessageBuilder.builder()
     .setType(MessageType.ACTIONBAR)
-    .setRawMessage("&aYour balance has been set to &e%amount%.")
+    .setRawMessage("%prefix%<#00FFAA>✅ Your balance has been updated: <#FFDD55>%amount% <#00FFAA>coins.")
     .build();
+
   private HiperMessage messageDeposit = HiperMessageBuilder.builder()
     .setType(MessageType.ACTIONBAR)
-    .setRawMessage("&aYou have deposited &e%amount% &ain your account.")
+    .setRawMessage("%prefix%<#00FFAA>💰 You have received a deposit of <#FFDD55>%amount% <#00FFAA>into your account.")
     .build();
+
   private HiperMessage messageWithdraw = HiperMessageBuilder.builder()
     .setType(MessageType.ACTIONBAR)
-    .setRawMessage("&aYou have withdrawn &e%amount% &afrom your account.")
+    .setRawMessage("%prefix%<#FF5555>💸 You have withdrawn <#FFAA33>%amount% <#FF5555>from your account.")
     .build();
+
   private HiperMessage messageCurrencyNotTransferable = HiperMessageBuilder.builder()
     .setType(MessageType.CHAT)
-    .setRawMessage("&cThis currency is not transferable.")
+    .setRawMessage("%prefix%<#FF4444>⚠️ This currency cannot be transferred.")
     .build();
+
+  // Mensajes de pagos
   private HiperMessage messagePaySuccessSender = HiperMessageBuilder.builder()
     .setType(MessageType.ACTIONBAR)
-    .setRawMessage("&aYou have paid &e%amount% &ato &e%player%.")
+    .setRawMessage("%prefix%<#00FFAA>✅ You have paid <#FFDD55>%amount% <#00FFAA>to <#33FFFF>%player%")
     .build();
+
   private HiperMessage messagePaySuccessReceiver = HiperMessageBuilder.builder()
     .setType(MessageType.CHAT)
-    .setRawMessage("%prefix%&aYou have received &e%amount% &afrom &e%player%.")
+    .setRawMessage("%prefix%<#00FFAA>💰 You have received <#FFDD55>%amount% <#00FFAA>from <#33FFFF>%player%")
     .build();
+
   private HiperMessage messagePayYourself = HiperMessageBuilder.builder()
     .setType(MessageType.CHAT)
-    .setRawMessage("&cYou can't pay yourself.")
+    .setRawMessage("%prefix%<#FF4444>❌ You cannot pay yourself.")
     .build();
+
   private HiperMessage messageNoMoney = HiperMessageBuilder.builder()
     .setType(MessageType.CHAT)
-    .setRawMessage("&cYou don't have enough money.")
+    .setRawMessage("%prefix%<#FF4444>❌ You don't have enough coins!")
     .build();
-  // BalTop messages
-  private String messageBalTopHeader = "&6--- &eTop %number% richest players &6---";
-  private String messageBalTopLine = "&e%rank%. &6%player%: &a%balance%";
-  private String messageBalTopFooter = "&6------------------------------";
-  private String messageBalTopEmpty = "&cNo players found.";
+
+  // Mensajes BalTop
+  private String messageBalTopHeader = "%prefix%<#FFAA00>--- <#FFD700>Top %number% Richest Players <#FFAA00>---";
+  private String messageBalTopLine = "%prefix%<#FFD700>%rank%. <#FFDD55>%player%: <#00FFAA>%balance% <#FFAA00>coins";
+  private String messageBalTopFooter = "%prefix%<#FFAA00>------------------------------";
+  private String messageBalTopEmpty = "%prefix%<#FF5555>No players found.";
   private BalTopMenu balTopMenu = new BalTopMenu();
 
-
   public Lang() {
-    prefix = "&6[&eUltraEconomy&6] &r";
+    prefix = "<#FFAA00>[<#FFD700>UltraEconomy<#FFAA00>] <#FFFFFF>";
   }
 
   public void init() {
@@ -84,3 +95,4 @@ public class Lang {
     }
   }
 }
+

@@ -13,7 +13,6 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -52,7 +51,7 @@ public class BalanceCommand {
               .executes(context -> {
                 CompletableFuture.runAsync(() -> {
                   var target = StringArgumentType.getString(context, "player");
-                  if (!UltraEconomyApi.existPlayerWithName(target)) {
+                  if (!UltraEconomyApi.existsPlayerWithName(target)) {
                     context.getSource().sendMessage(Text.literal("§cPlayer not found"));
                     return;
                   }
@@ -97,13 +96,12 @@ public class BalanceCommand {
       ServerPlayerEntity player = source.getPlayer();
 
       var lang = UltraEconomy.lang;
-      String modifiedContent = lang.getMessageBalance().getRawMessage().replace("%balance%", currency.format(balance,
-        Locale.US));
+      String modifiedContent = lang.getMessageBalance().getRawMessage().replace("%balance%", currency.format(balance, UltraEconomyApi.getLocale(player)));
       var message = lang.getMessageBalance();
       message.sendMessage(
         player,
         modifiedContent,
-        UltraEconomy.MOD_ID,
+        UltraEconomy.lang.getPrefix(),
         false
       );
     }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR).exceptionally(e -> {

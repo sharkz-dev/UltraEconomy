@@ -55,7 +55,7 @@ public class PayCommand {
                   .executes(context -> {
                     var executor = context.getSource().getPlayer();
                     var target = StringArgumentType.getString(context, "player");
-                    if (!UltraEconomyApi.existPlayerWithName(target)) {
+                    if (!UltraEconomyApi.existsPlayerWithName(target)) {
                       context.getSource().sendMessage(Text.literal("§cPlayer not found"));
                       return 0;
                     }

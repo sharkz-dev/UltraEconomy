@@ -43,50 +43,48 @@ public class BalTopMenu {
 
   public void open(ServerPlayerEntity player, int page, Currency currency) {
     CompletableFuture.runAsync(() -> {
-        ChestTemplate template = ChestTemplate
-          .builder(rows)
-          .build();
+        ChestTemplate template = ChestTemplate.builder(rows).build();
 
+        // Obtenemos la lista directamente, ya viene con +1 internamente
         List<Account> accounts = DatabaseFactory.INSTANCE.getTopBalances(currency.getId(), page, playersPerPage);
 
-        List<GooeyButton> buttons = new ArrayList<>();
-        int size = accounts.size();
-        int finishIndex = 0;
-        if (size > playersPerPage) finishIndex = playersPerPage;
+        // Si la lista es mayor que playersPerPage, hay siguiente página
+        boolean hasNextPage = accounts.size() > playersPerPage;
 
-        for (int i = 0; i < finishIndex; i++) {
-          Account account = accounts.get(i);
-          GooeyButton button = account.getButton(currency);
-          buttons.add(button);
+        // Mostramos solo hasta playersPerPage
+        List<Account> accountsPage = accounts.subList(0, Math.min(playersPerPage, accounts.size()));
+
+        List<GooeyButton> buttons = new ArrayList<>();
+        for (Account account : accountsPage) {
+          buttons.add(account.getButton(currency));
         }
         rectangle.apply(template, buttons);
 
+        // Botón de página anterior
         if (page > 1) {
-          prevPageItem.applyTemplate(template, prevPageItem.getButton(action -> {
-            open(player, Math.min(1, page - 1), currency);
-          }));
-        }
-        closeItem.applyTemplate(template, closeItem.getButton(action -> {
-          UIManager.closeUI(player);
-        }));
-        if (size > playersPerPage) {
-          nextPageItem.applyTemplate(template, nextPageItem.getButton(action -> {
-            open(player, page + 1, currency);
-          }));
+          prevPageItem.applyTemplate(template, prevPageItem.getButton(action -> open(player, page - 1, currency)));
         }
 
+        // Botón de cerrar
+        closeItem.applyTemplate(template, closeItem.getButton(action -> UIManager.closeUI(player)));
+
+        // Botón de siguiente página si hay más
+        if (hasNextPage) {
+          nextPageItem.applyTemplate(template, nextPageItem.getButton(action -> open(player, page + 1, currency)));
+        }
 
         GooeyPage pageMenu = GooeyPage.builder()
           .template(template)
           .title(AdventureTranslator.toNative(title))
           .build();
 
-
         UIManager.openUIForcefully(player, pageMenu);
+
       }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR)
       .exceptionally(e -> {
         e.printStackTrace();
         return null;
       });
   }
+
 }

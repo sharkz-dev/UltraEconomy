@@ -9,6 +9,7 @@ import com.kingpixel.ultraeconomy.config.Currencies;
 import com.kingpixel.ultraeconomy.config.Lang;
 import com.kingpixel.ultraeconomy.database.DatabaseFactory;
 import com.kingpixel.ultraeconomy.models.Account;
+import com.kingpixel.ultraeconomy.placeholders.PlaceHolders;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
@@ -44,6 +45,7 @@ public class UltraEconomy implements ModInitializer {
     if (!folder.exists()) {
       folder.mkdirs();
     }
+    PlaceHolders.register();
     load();
     events();
     tasks();

@@ -71,8 +71,13 @@ dependencies {
     modImplementation("ca.landonjw.gooeylibs:fabric-api-repack:${property("gooeylibs_version")}")
 
 
+    // Economy APIs
     modImplementation("net.impactdev.impactor.api:economy:${property("impactor_version")}")
     modImplementation("net.impactdev.impactor:common:${property("impactor_version")}")
+
+    // Placeholder API
+    modImplementation("eu.pb4:placeholder-api:${property("placeholder_api_version_fabricandforge")}")
+
     // Database
     modImplementation("com.zaxxer:HikariCP:5.0.1")
     implementation("org.mongodb:mongodb-driver-sync:${property("mongodb_version")}")
