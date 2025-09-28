@@ -19,6 +19,8 @@ import java.util.concurrent.CompletableFuture;
 @Data
 public class Config {
   private boolean debug;
+  private boolean notifications;
+  private boolean aggressiveSave;
   private String lang;
   private List<String> commands;
   private DataBaseConfig database;
@@ -28,11 +30,14 @@ public class Config {
   private DurationValue balTopCooldown;
 
   public Config() {
+    debug = false;
+    notifications = true;
+    aggressiveSave = false;
     lang = "en_us";
     commands = List.of("money", "balance", "bal", "eco", "ultraeconomy");
     database = new DataBaseConfig();
     database.setType(DataBaseType.SQLITE);
-    database.setUrl("jdbc:sqlite:ultraeconomy.db");
+    database.setUrl("jdbc:sqlite:./config/ultraeconomy/ultraeconomy.db");
     migration = new MigrationConfig();
     limitTopPlayers = 10;
     adjustmentShortName = 3;

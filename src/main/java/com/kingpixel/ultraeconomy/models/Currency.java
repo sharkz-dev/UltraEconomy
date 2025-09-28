@@ -2,6 +2,7 @@ package com.kingpixel.ultraeconomy.models;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.util.AdventureTranslator;
 import com.kingpixel.ultraeconomy.UltraEconomy;
 import lombok.Data;
@@ -23,8 +24,8 @@ public class Currency {
   private String id;
   private boolean primary;
   private boolean transferable;
-  private byte decimals;
   private BigDecimal defaultBalance;
+  private byte decimals;
   private String symbol;
   private String format;
   private String singular;
@@ -55,11 +56,21 @@ public class Currency {
   public void init() {
     formatCache = Caffeine.newBuilder()
       .expireAfterAccess(1, TimeUnit.MINUTES)
-      .maximumSize(1_000)
+      .maximumSize(5_000)
+      .removalListener((key, value, cause) -> {
+        if (UltraEconomy.config.isDebug()) {
+          CobbleUtils.LOGGER.info("Currency format cache removed key: " + key + ", cause: " + cause);
+        }
+      })
       .build();
     formatTextCache = Caffeine.newBuilder()
       .expireAfterAccess(1, TimeUnit.MINUTES)
-      .maximumSize(1_000)
+      .maximumSize(5_000)
+      .removalListener((key, value, cause) -> {
+        if (UltraEconomy.config.isDebug()) {
+          CobbleUtils.LOGGER.info("Currency formatText cache removed key: " + key + ", cause: " + cause);
+        }
+      })
       .build();
   }
 

@@ -16,9 +16,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.MinecraftServer;
 
 import java.io.File;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 public class UltraEconomy implements ModInitializer {
   public static final String MOD_ID = "ultraeconomy";
@@ -32,6 +30,12 @@ public class UltraEconomy implements ModInitializer {
       .setDaemon(true)
       .build()
   );
+  public static final ScheduledExecutorService ULTRA_ECONOMY_SCHEDULER = Executors.newScheduledThreadPool(1,
+    new ThreadFactoryBuilder()
+      .setNameFormat("ultra economy-scheduler-%d")
+      .setDaemon(true)
+      .build()
+  );
   public static boolean migrationDone;
 
   @Override
@@ -42,6 +46,7 @@ public class UltraEconomy implements ModInitializer {
     }
     load();
     events();
+    tasks();
   }
 
   public static void load() {
@@ -64,19 +69,18 @@ public class UltraEconomy implements ModInitializer {
         });
     });
 
-    ServerPlayerEvents.LEAVE.register((player) -> DatabaseFactory.INSTANCE.invalidate(player.getUuid()));
+    ServerPlayerEvents.LEAVE.register((player) -> {
+      if (server.isStopped() || server.isStopping()) return;
+      DatabaseFactory.CACHE_ACCOUNTS.invalidate(player.getUuid());
+    });
 
     ServerLifecycleEvents.SERVER_STARTED.register((server) -> {
       UltraEconomy.server = server;
       config.getMigration().startMigration();
-      migrationDone = true;
     });
 
     ServerLifecycleEvents.SERVER_STOPPING.register((server) -> {
       DatabaseFactory.INSTANCE.flushCache();
-    });
-
-    ServerLifecycleEvents.SERVER_STOPPED.register((server) -> {
       DatabaseFactory.INSTANCE.disconnect();
       CobbleUtils.shutdownAndAwait(ULTRA_ECONOMY_EXECUTOR);
     });
@@ -84,4 +88,12 @@ public class UltraEconomy implements ModInitializer {
     CommandRegistrationCallback.EVENT.register(Register::register);
   }
 
+  private void tasks() {
+    // Aquí puedes agregar tareas programadas si es necesario
+    ULTRA_ECONOMY_SCHEDULER.scheduleAtFixedRate(() -> {
+      DatabaseFactory.CACHE_ACCOUNTS.asMap().values().forEach(account -> {
+        DatabaseFactory.INSTANCE.saveOrUpdateAccount(account);
+      });
+    }, 0, 30, TimeUnit.SECONDS);
+  }
 }

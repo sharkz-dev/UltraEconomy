@@ -2,9 +2,9 @@ package com.kingpixel.ultraeconomy.commands.admin;
 
 import com.kingpixel.cobbleutils.api.PermissionApi;
 import com.kingpixel.cobbleutils.command.suggests.CobbleUtilsSuggests;
-import com.kingpixel.cobbleutils.util.AdventureTranslator;
 import com.kingpixel.ultraeconomy.UltraEconomy;
 import com.kingpixel.ultraeconomy.api.UltraEconomyApi;
+import com.kingpixel.ultraeconomy.commands.Register;
 import com.kingpixel.ultraeconomy.config.Currencies;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -40,18 +40,20 @@ public class DepositCommand {
                     .executes(context -> {
                       CompletableFuture.runAsync(() -> {
                           var target = StringArgumentType.getString(context, "player");
+                          if (!UltraEconomyApi.existPlayerWithName(target)) {
+                            context.getSource().sendMessage(Text.literal("§cPlayer not found"));
+                            return;
+                          }
                           var currency = Currencies.getCurrency(StringArgumentType.getString(context, "currency"));
                           var amountStr = StringArgumentType.getString(context, "amount");
-                          var data = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayer(target);
-                          data.ifPresentOrElse(
-                            d -> {
-                              BigDecimal value = BigDecimal.valueOf(Double.parseDouble(amountStr));
-                              UltraEconomyApi.deposit(d.player().getUuid(), currency.getId(), value);
-                              context.getSource().sendMessage(AdventureTranslator.toNative("§aDeposited " + currency.format(value) + " " +
-                                "to " + d.player().getGameProfile().getName()));
-                            },
-                            () -> context.getSource().sendError(Text.literal("§cPlayer not found"))
-                          );
+                          var playerUUID = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerUUIDWithName(target);
+                          if (playerUUID != null) {
+                            BigDecimal value = BigDecimal.valueOf(Double.parseDouble(amountStr));
+                            UltraEconomyApi.deposit(playerUUID, currency.getId(), value);
+                            Register.sendMessage(currency, value, playerUUID, UltraEconomy.lang.getMessageDeposit());
+                          } else {
+                            context.getSource().sendError(Text.literal("§cPlayer not found"));
+                          }
                         }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR)
                         .exceptionally(e -> {
                           e.printStackTrace();

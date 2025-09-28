@@ -14,6 +14,7 @@ import net.minecraft.text.Text;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -28,7 +29,8 @@ public class BalanceCommand {
   private static LiteralArgumentBuilder<ServerCommandSource> get() {
     return CommandManager.literal("balance")
       .executes(context -> {
-        run(context.getSource().getPlayer(), context.getSource(), Currencies.DEFAULT_CURRENCY.getId());
+        ServerPlayerEntity player = context.getSource().getPlayer();
+        run(player == null ? null : player.getUuid(), context.getSource(), Currencies.DEFAULT_CURRENCY.getId());
         return 1;
       }).then(
         CommandManager.argument("currency", StringArgumentType.string())
@@ -39,7 +41,9 @@ public class BalanceCommand {
             }
             return builder.buildFuture();
           }).executes(context -> {
-            run(context.getSource().getPlayer(), context.getSource(), StringArgumentType.getString(context, "currency"));
+            ServerPlayerEntity player = context.getSource().getPlayer();
+            run(player == null ? null : player.getUuid(), context.getSource(), StringArgumentType.getString(context,
+              "currency"));
             return 1;
           }).then(
             CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.suggestPlayerName("player", List.of(
@@ -48,12 +52,13 @@ public class BalanceCommand {
               .executes(context -> {
                 CompletableFuture.runAsync(() -> {
                   var target = StringArgumentType.getString(context, "player");
+                  if (!UltraEconomyApi.existPlayerWithName(target)) {
+                    context.getSource().sendMessage(Text.literal("§cPlayer not found"));
+                    return;
+                  }
                   var currencyId = StringArgumentType.getString(context, "currency");
-                  var data = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayer(target);
-                  data.ifPresentOrElse(
-                    d -> run(d.player(), context.getSource(), currencyId),
-                    () -> context.getSource().sendError(Text.literal("§cPlayer not found"))
-                  );
+                  var targetUUID = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerUUIDWithName(target);
+                  run(targetUUID, context.getSource(), currencyId);
                 }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR).exceptionally(e -> {
                   e.printStackTrace();
                   return null;
@@ -64,14 +69,14 @@ public class BalanceCommand {
       );
   }
 
-  public static void run(ServerPlayerEntity target, ServerCommandSource source, String currencyId) {
+  public static void run(UUID targetUUID, ServerCommandSource source, String currencyId) {
     CompletableFuture.runAsync(() -> {
-      if (target == null) {
+      if (targetUUID == null) {
         source.sendError(Text.literal("§cYou must be a player to use this command"));
         return;
       }
 
-      var account = UltraEconomyApi.getAccount(target.getUuid());
+      var account = UltraEconomyApi.getAccount(targetUUID);
       if (account == null) {
         source.sendError(Text.literal("§cAccount not found"));
         return;
@@ -79,7 +84,7 @@ public class BalanceCommand {
 
       var currency = Currencies.getCurrency(currencyId);
       if (currency == null) {
-        source.sendError(Text.literal("§cCurrency not found: " + currencyId + ". Available: " + String.join(", ",
+        source.sendMessage(Text.literal("§cCurrency not found: " + currencyId + ". Available: " + String.join(", ",
           Currencies.CURRENCY_IDS)));
         return;
       }

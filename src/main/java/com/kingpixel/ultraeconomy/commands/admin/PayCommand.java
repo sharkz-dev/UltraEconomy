@@ -13,9 +13,11 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -53,6 +55,10 @@ public class PayCommand {
                   .executes(context -> {
                     var executor = context.getSource().getPlayer();
                     var target = StringArgumentType.getString(context, "player");
+                    if (!UltraEconomyApi.existPlayerWithName(target)) {
+                      context.getSource().sendMessage(Text.literal("§cPlayer not found"));
+                      return 0;
+                    }
                     var currencyId = StringArgumentType.getString(context, "currency");
                     var amount = BigDecimal.valueOf(FloatArgumentType.getFloat(context, "amount"));
                     run(executor, target, currencyId, amount);
@@ -66,18 +72,17 @@ public class PayCommand {
   private static void run(ServerPlayerEntity executor, String target, String currencyId, BigDecimal amount) {
     CompletableFuture.runAsync(() -> {
         Currency currency = Currencies.getCurrency(currencyId);
-        var player = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayer(target);
-        player.ifPresent(dataResultPlayer -> {
-          if (executor.getUuid().equals(dataResultPlayer.player().getUuid())) {
-            UltraEconomy.lang.getMessagePayYourself().sendMessage(
-              executor,
-              UltraEconomy.lang.getPrefix(),
-              false
-            );
-            return;
-          }
-          UltraEconomyApi.transfer(executor.getUuid(), dataResultPlayer.player().getUuid(), currency.getId(), amount);
-        });
+
+        UUID targetUUID = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerUUIDWithName(target);
+        if (executor.getUuid().equals(targetUUID)) {
+          UltraEconomy.lang.getMessagePayYourself().sendMessage(
+            executor,
+            UltraEconomy.lang.getPrefix(),
+            false
+          );
+          return;
+        }
+        UltraEconomyApi.transfer(executor.getUuid(), targetUUID, currency.getId(), amount);
       }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR)
       .exceptionally(e -> {
         e.printStackTrace();

@@ -13,6 +13,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.text.Text;
 
 import java.util.List;
 import java.util.StringJoiner;
@@ -25,6 +26,35 @@ public class BaltopCommand {
   public static void put(CommandDispatcher<ServerCommandSource> dispatcher, LiteralArgumentBuilder<ServerCommandSource> base) {
     base.then(get());
     dispatcher.register(get());
+    base.then(getBalTopMenu());
+    dispatcher.register(getBalTopMenu());
+  }
+
+  private static LiteralArgumentBuilder<ServerCommandSource> getBalTopMenu() {
+    return CommandManager.literal("baltopmenu")
+      .then(
+        CommandManager.argument("currency", StringArgumentType.string())
+          .suggests((context, builder) -> {
+            var size = Currencies.CURRENCY_IDS.length;
+            for (int i = 0; i < size; i++) {
+              builder.suggest(Currencies.CURRENCY_IDS[i]);
+            }
+            return builder.buildFuture();
+          })
+          .executes(context -> {
+            String currencyId = StringArgumentType.getString(context, "currency");
+            Currency currency = Currencies.getCurrency(currencyId);
+            if (currency == null) {
+              context.getSource().sendMessage(
+                Text.literal("§cCurrency not found: " + currencyId)
+              );
+              return 0;
+            }
+            UltraEconomy.lang.getBalTopMenu().open(context.getSource().getPlayer(), 1,
+              currency);
+            return 1;
+          })
+      );
   }
 
   private static LiteralArgumentBuilder<ServerCommandSource> get() {
@@ -45,7 +75,7 @@ public class BaltopCommand {
             run(context.getSource(), StringArgumentType.getString(context, "currency"), 1);
             return 1;
           }).then(
-            CommandManager.argument("page", IntegerArgumentType.integer(1, 100))
+            CommandManager.argument("page", IntegerArgumentType.integer(1))
               .executes(context -> {
                 run(context.getSource(), StringArgumentType.getString(context,
                     "currency"),
@@ -61,7 +91,8 @@ public class BaltopCommand {
       UltraEconomy.config.getBalTopCooldown())) return;
     CompletableFuture.runAsync(() -> {
         Currency currency = Currencies.getCurrency(currencyId);
-        List<Account> topAccounts = DatabaseFactory.INSTANCE.getTopBalances(currency.getId(), page);
+        List<Account> topAccounts = DatabaseFactory.INSTANCE.getTopBalances(currency.getId(), page,
+          UltraEconomy.config.getLimitTopPlayers());
 
         StringJoiner joiner = new StringJoiner("\n");
         joiner.add(UltraEconomy.lang.getMessageBalTopHeader()
@@ -72,8 +103,10 @@ public class BaltopCommand {
         } else {
           int limit = UltraEconomy.config.getLimitTopPlayers();
           int rank = (page - 1) * limit + 1;
-
-          for (Account account : topAccounts) {
+          int size = topAccounts.size();
+          if (size > limit) size = limit;
+          for (int i = 0; i < size; i++) {
+            Account account = topAccounts.get(i);
             String line = UltraEconomy.lang.getMessageBalTopLine()
               .replace("%rank%", Integer.toString(rank))
               .replace("%player%", account.getPlayerName())

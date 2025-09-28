@@ -39,6 +39,7 @@ public class Currencies {
           );
           currency.setId(file.getName().replace(".json", ""));
           CURRENCIES.put(currency.getId(), currency);
+          writeCurrency(currency);
         } catch (Exception e) {
           e.printStackTrace();
         }

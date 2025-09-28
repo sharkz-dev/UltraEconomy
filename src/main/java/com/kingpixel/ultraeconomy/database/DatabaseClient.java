@@ -1,6 +1,8 @@
 package com.kingpixel.ultraeconomy.database;
 
 import com.kingpixel.cobbleutils.Model.DataBaseConfig;
+import com.kingpixel.cobbleutils.command.suggests.CobbleUtilsSuggests;
+import com.kingpixel.ultraeconomy.api.UltraEconomyApi;
 import com.kingpixel.ultraeconomy.models.Account;
 
 import javax.annotation.Nullable;
@@ -135,12 +137,23 @@ public abstract class DatabaseClient {
   /**
    * Get the top balances for a currency
    *
-   * @param currency The currency to get
-   * @param page     The page number (starting from 1)
+   * @param currency       The currency to get
+   * @param page           The page number (starting from 1)
+   * @param playersPerPage
    *
    * @return A list of accounts with the top balances
    */
-  public abstract List<Account> getTopBalances(String currency, int page);
+  public abstract List<Account> getTopBalances(String currency, int page, int playersPerPage);
 
-  public abstract void flushCache();
+  public void flushCache() {
+    DatabaseFactory.CACHE_ACCOUNTS.asMap().forEach((uuid, account) -> UltraEconomyApi.saveAccountSync(account));
+  }
+
+  public boolean existPlayerWithName(String target) {
+    return existPlayerWithUUID(CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerUUIDWithName(target));
+  }
+
+  public abstract boolean existPlayerWithUUID(UUID uuid);
+
+  public abstract void saveOrUpdateAccountSync(Account account);
 }
