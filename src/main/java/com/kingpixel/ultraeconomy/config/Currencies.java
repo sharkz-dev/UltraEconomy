@@ -14,7 +14,7 @@ import java.util.Map;
  */
 public class Currencies {
   private static String PATH = UltraEconomy.PATH + "/currencys/";
-  public static final Map<String, Currency> CURRENCIES = new HashMap<>();
+  private static final Map<String, Currency> CURRENCIES = new HashMap<>();
   public static String[] CURRENCY_IDS = new String[0];
   public static Currency DEFAULT_CURRENCY;
 
@@ -40,9 +40,6 @@ public class Currencies {
           );
           currency.setId(file.getName().replace(".json", ""));
           CURRENCIES.put(currency.getId(), currency);
-          for (String allowedId : currency.getAllowedIds()) {
-            CURRENCIES.put(allowedId, currency);
-          }
           writeCurrency(currency);
         } catch (Exception e) {
           e.printStackTrace();
@@ -58,31 +55,21 @@ public class Currencies {
     CURRENCY_IDS = CURRENCIES.keySet().toArray(new String[0]);
   }
 
+  public static Map<String, Currency> getCurrencies() {
+    return CURRENCIES;
+  }
+
   private static void writeCurrency(Currency currency) {
     String data = Utils.newGson().toJson(currency);
     Utils.writeFileAsync(PATH, currency.getId() + ".json", data);
   }
 
   public static @Nullable Currency getCurrency(String currency) {
-    Currency curr = CURRENCIES.get(currency);
+    var curr = CURRENCIES.get(currency);
     if (curr == null) {
-      CobbleUtils.LOGGER.warn(UltraEconomy.MOD_ID, "Currency not found: " + currency);
-    }
-    if (curr == null) {
-      for (Map.Entry<String, Currency> entry : CURRENCIES.entrySet()) {
-        var value = entry.getValue();
-        for (String id : value.getAllowedIds()) {
-          if (id.equalsIgnoreCase(currency)) {
-            curr = value;
-            break;
-          }
-        }
-        if (curr != null) break;
-      }
-      if (curr != null) CURRENCIES.put(currency, curr);
-    }
-    if (curr == null) {
-      CobbleUtils.LOGGER.warn(UltraEconomy.MOD_ID, "Currency not found: " + currency);
+      CobbleUtils.LOGGER.error(UltraEconomy.MOD_ID, "Invalid currency: " + currency);
+      throw new IllegalArgumentException("Invalid currency: " + currency + ". Available currencies: " + String.join(
+        ", ", Currencies.CURRENCY_IDS) + ". Fix this fast this can cause bugs in the mods / plugins.");
     }
     return curr;
   }

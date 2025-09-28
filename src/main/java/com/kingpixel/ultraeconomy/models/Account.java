@@ -85,13 +85,13 @@ public class Account {
   }
 
   public void fix() {
-    Currencies.CURRENCIES.forEach((k, v) ->
+    Currencies.getCurrencies().forEach((k, v) ->
       balances.putIfAbsent(k, v.getDefaultBalance()));
   }
 
   private Map<String, BigDecimal> defaultBalances() {
     Map<String, BigDecimal> defaults = new ConcurrentHashMap<>();
-    Currencies.CURRENCIES.forEach((k, v) -> defaults.put(k, v.getDefaultBalance()));
+    Currencies.getCurrencies().forEach((k, v) -> defaults.put(k, v.getDefaultBalance()));
     return defaults;
   }
 

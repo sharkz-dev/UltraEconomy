@@ -86,13 +86,7 @@ public class UltraEconomyApi {
    * @return the currency
    */
   private static @Nullable Currency getCurrency(String currency) {
-    Currency curr = Currencies.getCurrency(currency);
-    if (curr == null) {
-      CobbleUtils.LOGGER.error(UltraEconomy.MOD_ID, "Invalid currency: " + currency);
-      throw new IllegalArgumentException("Invalid currency: " + currency + ". Available currencies: " + String.join(
-        ", ", Currencies.CURRENCY_IDS) + ". Fix this fast this can cause bugs in the mods / plugins.");
-    }
-    return curr;
+    return Currencies.getCurrency(currency);
   }
 
   /**

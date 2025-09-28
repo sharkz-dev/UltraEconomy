@@ -11,7 +11,9 @@ import net.minecraft.text.Text;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -31,7 +33,6 @@ public class Currency {
   private String singular;
   private String plural;
   private String[] SUFFIXES;
-  private List<String> allowedIds = new ArrayList<>();
 
   transient
   private Map<Locale, Cache<BigDecimal, String>> formatCache;
