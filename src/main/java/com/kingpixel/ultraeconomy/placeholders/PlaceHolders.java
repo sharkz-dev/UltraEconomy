@@ -77,7 +77,7 @@ public class PlaceHolders {
           );
         }
       );
-    } catch (Exception ignored) {
+    } catch (Exception | NoClassDefFoundError ignored) {
 
     }
   }

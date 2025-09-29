@@ -67,6 +67,21 @@ public class Lang {
     .setRawMessage("%prefix%<#FF4444>❌ You don't have enough coins!")
     .build();
 
+  private HiperMessage messagePlayerNotFound = HiperMessageBuilder.builder()
+    .setType(MessageType.CHAT)
+    .setRawMessage("%prefix%<#FF4444>❌ Player not found.")
+    .build();
+
+  private HiperMessage messageInvalidAmount = HiperMessageBuilder.builder()
+    .setType(MessageType.CHAT)
+    .setRawMessage("%prefix%<#FF4444>❌ Invalid amount.")
+    .build();
+
+  private HiperMessage messageUnknownCurrency = HiperMessageBuilder.builder()
+    .setType(MessageType.CHAT)
+    .setRawMessage("%prefix%<#FF4444>❌ Unknown currency.")
+    .build();
+
   // Mensajes BalTop
   private String messageBalTopHeader = "%prefix%<#FFAA00>--- <#FFD700>Top %number% Richest Players <#FFAA00>---";
   private String messageBalTopLine = "%prefix%<#FFD700>%rank%. <#FFDD55>%player%: <#00FFAA>%balance% <#FFAA00>coins";

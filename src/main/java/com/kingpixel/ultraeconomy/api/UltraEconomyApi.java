@@ -7,6 +7,7 @@ import com.kingpixel.cobbleutils.command.suggests.CobbleUtilsSuggests;
 import com.kingpixel.ultraeconomy.UltraEconomy;
 import com.kingpixel.ultraeconomy.config.Currencies;
 import com.kingpixel.ultraeconomy.database.DatabaseFactory;
+import com.kingpixel.ultraeconomy.exceptions.UnknownCurrencyException;
 import com.kingpixel.ultraeconomy.models.Account;
 import com.kingpixel.ultraeconomy.models.Currency;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -31,12 +32,11 @@ public class UltraEconomyApi {
    */
   public static Account getAccount(@NotNull UUID playerUUID) {
     //long start = System.currentTimeMillis();
-    Account account = DatabaseFactory.INSTANCE.getAccount(playerUUID);
     //long end = System.currentTimeMillis();
     //if (UltraEconomy.config.isDebug()) {
     //  CobbleUtils.LOGGER.info(UltraEconomy.MOD_ID, "Get account with playerUUID took " + (end - start) + "ms");
     //}
-    return account;
+    return DatabaseFactory.INSTANCE.getAccount(playerUUID);
   }
 
   /**
@@ -56,8 +56,7 @@ public class UltraEconomyApi {
   public static boolean withdraw(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
     long start = System.currentTimeMillis();
     Currency c = getCurrency(currency);
-    if (c == null) return false;
-    boolean result = DatabaseFactory.INSTANCE.withdraw(uuid, currency, amount);
+    boolean result = DatabaseFactory.INSTANCE.withdraw(uuid, c, amount);
     if (UltraEconomy.config.isNotifications()) {
       var message = UltraEconomy.lang.getMessageWithdraw();
       message.sendMessage(uuid, UltraEconomy.lang.getPrefix(), false, false, null,
@@ -85,7 +84,7 @@ public class UltraEconomyApi {
    *
    * @return the currency
    */
-  private static @Nullable Currency getCurrency(String currency) {
+  private static Currency getCurrency(String currency) throws UnknownCurrencyException {
     return Currencies.getCurrency(currency);
   }
 
@@ -101,8 +100,7 @@ public class UltraEconomyApi {
   public static boolean deposit(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
     long start = System.currentTimeMillis();
     Currency c = getCurrency(currency);
-    if (c == null) return false;
-    boolean result = DatabaseFactory.INSTANCE.deposit(uuid, currency, amount);
+    boolean result = DatabaseFactory.INSTANCE.deposit(uuid, c, amount);
     if (UltraEconomy.config.isNotifications()) {
       var message = UltraEconomy.lang.getMessageDeposit();
       message.sendMessage(uuid, UltraEconomy.lang.getPrefix(), false, false, null,
@@ -129,8 +127,7 @@ public class UltraEconomyApi {
   public static @Nullable BigDecimal setBalance(@NotNull UUID uuid, @NotNull String currency, BigDecimal amount) {
     long start = System.currentTimeMillis();
     Currency c = getCurrency(currency);
-    if (c == null) return null;
-    BigDecimal result = DatabaseFactory.INSTANCE.setBalance(uuid, currency, amount);
+    BigDecimal result = DatabaseFactory.INSTANCE.setBalance(uuid, c, amount);
     if (UltraEconomy.config.isNotifications()) {
       var message = UltraEconomy.lang.getMessageSetBalance();
       message.sendMessage(uuid, UltraEconomy.lang.getPrefix(), false, false, null,
@@ -154,12 +151,12 @@ public class UltraEconomyApi {
    */
   public static @Nullable BigDecimal getBalance(@NotNull UUID uuid, @NotNull String currency) {
     //long start = System.currentTimeMillis();
-    BigDecimal result = DatabaseFactory.INSTANCE.getBalance(uuid, currency);
     //long end = System.currentTimeMillis();
     //if (UltraEconomy.config.isDebug()) {
     //  CobbleUtils.LOGGER.info(UltraEconomy.MOD_ID, "Get balance took " + (end - start) + "ms");
     //}
-    return result;
+    Currency c = getCurrency(currency);
+    return DatabaseFactory.INSTANCE.getBalance(uuid, c);
   }
 
   /**
@@ -174,8 +171,7 @@ public class UltraEconomyApi {
   public static boolean hasEnoughBalance(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
     long start = System.currentTimeMillis();
     Currency c = getCurrency(currency);
-    if (c == null) return false;
-    var result = DatabaseFactory.INSTANCE.hasEnoughBalance(uuid, currency, amount);
+    var result = DatabaseFactory.INSTANCE.hasEnoughBalance(uuid, c, amount);
     if (UltraEconomy.config.isNotifications() && !result) {
       var message = UltraEconomy.lang.getMessageNoMoney();
       message.sendMessage(uuid, UltraEconomy.lang.getPrefix(), false, false, null,
@@ -192,7 +188,6 @@ public class UltraEconomyApi {
   public static boolean transfer(UUID executor, UUID target, String currency, BigDecimal amount) {
     long start = System.currentTimeMillis();
     Currency curr = getCurrency(currency);
-    if (curr == null) return false;
     String nameTarget = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerNameWithUUID(target);
     String nameExecutor = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerNameWithUUID(executor);
     if (nameExecutor == null || nameExecutor.isEmpty() || nameTarget == null || nameTarget.isEmpty()) {
@@ -209,21 +204,22 @@ public class UltraEconomyApi {
       );
       return false;
     }
-    if (!hasEnoughBalance(executor, currency, amount)) {
+    String currId = curr.getId();
+    if (!hasEnoughBalance(executor, currId, amount)) {
       if (UltraEconomy.config.isDebug()) {
         CobbleUtils.LOGGER.error(UltraEconomy.MOD_ID, "Not enough balance for executor in transfer");
       }
       return false;
     }
-    if (!withdraw(executor, currency, amount)) {
-      deposit(executor, currency, amount);
+    if (!withdraw(executor, currId, amount)) {
+      deposit(executor, currId, amount);
       if (UltraEconomy.config.isDebug()) {
         CobbleUtils.LOGGER.error(UltraEconomy.MOD_ID, "Failed to withdraw from executor in transfer");
       }
       return false;
     }
-    if (!deposit(target, currency, amount)) {
-      deposit(executor, currency, amount);
+    if (!deposit(target, currId, amount)) {
+      deposit(executor, currId, amount);
       return false;
     }
     if (UltraEconomy.config.isNotifications()) {
@@ -277,7 +273,7 @@ public class UltraEconomyApi {
     return getLocale(UltraEconomy.server.getPlayerManager().getPlayer(playerUUID));
   }
 
-  private static Cache<String, Locale> localeCache = Caffeine.newBuilder()
+  private static final Cache<String, Locale> localeCache = Caffeine.newBuilder()
     .maximumSize(100)
     .build();
 

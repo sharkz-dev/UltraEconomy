@@ -1,10 +1,9 @@
 package com.kingpixel.ultraeconomy.config;
 
-import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.util.Utils;
 import com.kingpixel.ultraeconomy.UltraEconomy;
+import com.kingpixel.ultraeconomy.exceptions.UnknownCurrencyException;
 import com.kingpixel.ultraeconomy.models.Currency;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -46,6 +45,19 @@ public class Currencies {
         }
       }
     }
+
+    Map<String, Currency> aliases = new HashMap<>();
+    for (Currency currency : CURRENCIES.values()) {
+      if (currency.getCurrencyIds() != null) {
+        for (String alias : currency.getCurrencyIds()) {
+          aliases.put(alias, currency);
+        }
+      }
+    }
+
+    CURRENCIES.putAll(aliases);
+
+
     CURRENCIES.forEach((k, v) -> {
       v.init();
       if (v.isPrimary()) {
@@ -64,13 +76,16 @@ public class Currencies {
     Utils.writeFileAsync(PATH, currency.getId() + ".json", data);
   }
 
-  public static @Nullable Currency getCurrency(String currency) {
+  public static Currency getCurrency(String currency) throws UnknownCurrencyException {
     var curr = CURRENCIES.get(currency);
+    if (curr == null && UltraEconomy.config.isUseCurrencyDefaultWhenNotFound()) {
+      curr = DEFAULT_CURRENCY;
+    }
     if (curr == null) {
-      CobbleUtils.LOGGER.error(UltraEconomy.MOD_ID, "Invalid currency: " + currency);
-      throw new IllegalArgumentException("Invalid currency: " + currency + ". Available currencies: " + String.join(
-        ", ", Currencies.CURRENCY_IDS) + ". Fix this fast this can cause bugs in the mods / plugins.");
+      throw new UnknownCurrencyException(currency);
     }
     return curr;
   }
+
+
 }

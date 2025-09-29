@@ -3,7 +3,9 @@ package com.kingpixel.ultraeconomy.database;
 import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.Model.DataBaseConfig;
 import com.kingpixel.cobbleutils.Model.DataBaseType;
+import com.kingpixel.ultraeconomy.config.Currencies;
 import com.kingpixel.ultraeconomy.models.Account;
+import com.kingpixel.ultraeconomy.models.Currency;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -139,7 +141,7 @@ public class SQLClient extends DatabaseClient {
   }
 
   @Override
-  public boolean addBalance(UUID uuid, String currency, BigDecimal amount) {
+  public boolean addBalance(UUID uuid, Currency currency, BigDecimal amount) {
     Account account = getCachedAccount(uuid);
     boolean result = false;
     if (account == null) {
@@ -152,7 +154,7 @@ public class SQLClient extends DatabaseClient {
   }
 
   @Override
-  public boolean removeBalance(UUID uuid, String currency, BigDecimal amount) {
+  public boolean removeBalance(UUID uuid, Currency currency, BigDecimal amount) {
     Account account = getCachedAccount(uuid);
     boolean result = false;
     if (account == null) {
@@ -165,7 +167,7 @@ public class SQLClient extends DatabaseClient {
   }
 
   @Override
-  public BigDecimal setBalance(UUID uuid, String currency, BigDecimal amount) {
+  public BigDecimal setBalance(UUID uuid, Currency currency, BigDecimal amount) {
     Account account = getCachedAccount(uuid);
     if (account == null) {
       addTransaction(uuid, currency, amount, TransactionType.SET, false);
@@ -177,7 +179,7 @@ public class SQLClient extends DatabaseClient {
     return amount;
   }
 
-  private void saveBalanceSafe(UUID uuid, String currency, BigDecimal amount) {
+  private void saveBalanceSafe(UUID uuid, Currency currency, BigDecimal amount) {
     asyncExecutor.submit(() -> {
       try {
         saveBalance(uuid, currency, amount);
@@ -190,23 +192,23 @@ public class SQLClient extends DatabaseClient {
   }
 
   @Override
-  public BigDecimal getBalance(UUID uuid, String currency) {
+  public BigDecimal getBalance(UUID uuid, Currency currency) {
     return getAccount(uuid).getBalance(currency);
   }
 
   @Override
-  public boolean hasEnoughBalance(UUID uuid, String currency, BigDecimal amount) {
+  public boolean hasEnoughBalance(UUID uuid, Currency currency, BigDecimal amount) {
     return getAccount(uuid).hasEnoughBalance(currency, amount);
   }
 
   @Override
-  public List<Account> getTopBalances(String currency, int page, int playersPerPage) {
+  public List<Account> getTopBalances(Currency currency, int page, int playersPerPage) {
     List<Account> topAccounts = new ArrayList<>();
     int offset = (page - 1) * playersPerPage;
 
     try (Connection conn = dataSource.getConnection();
          PreparedStatement stmt = conn.prepareStatement(SQLSentences.selectTopBalances())) {
-      stmt.setString(1, currency);
+      stmt.setString(1, currency.getId());
       stmt.setInt(2, playersPerPage);
       stmt.setInt(3, offset);
       ResultSet rs = stmt.executeQuery();
@@ -216,7 +218,7 @@ public class SQLClient extends DatabaseClient {
         BigDecimal amount = rs.getBigDecimal("amount");
 
         Map<String, BigDecimal> balances = new HashMap<>();
-        balances.put(currency, amount);
+        balances.put(currency.getId(), amount);
         Account account = new Account(uuid, playerName, balances);
         topAccounts.add(account);
       }
@@ -242,13 +244,13 @@ public class SQLClient extends DatabaseClient {
   }
 
 
-  private void addTransaction(UUID uuid, String currency, BigDecimal amount, TransactionType type, boolean processed) {
+  private void addTransaction(UUID uuid, Currency currency, BigDecimal amount, TransactionType type, boolean processed) {
     asyncExecutor.submit(() -> {
       String query = SQLSentences.insertTransaction();
       try (Connection conn = dataSource.getConnection();
            PreparedStatement stmt = conn.prepareStatement(query)) {
         stmt.setString(1, uuid.toString());
-        stmt.setString(2, currency);
+        stmt.setString(2, currency.getId());
         stmt.setBigDecimal(3, amount);
         stmt.setString(4, type.name());
         stmt.setBoolean(5, processed);
@@ -273,7 +275,9 @@ public class SQLClient extends DatabaseClient {
           if (account == null) continue;
 
           long id = rs.getLong("id");
-          String currency = rs.getString("currency_id");
+          String currencyId = rs.getString("currency_id");
+          Currency currency = Currencies.getCurrency(currencyId);
+
           BigDecimal amount = rs.getBigDecimal("amount");
           TransactionType type = rs.getString("type") != null ? TransactionType.valueOf(rs.getString("type")) : TransactionType.DEPOSIT;
 
@@ -403,11 +407,11 @@ public class SQLClient extends DatabaseClient {
   }
 
 
-  private void saveBalance(UUID uuid, String currency, BigDecimal amount) throws SQLException {
+  private void saveBalance(UUID uuid, Currency currency, BigDecimal amount) throws SQLException {
     try (Connection conn = dataSource.getConnection();
          PreparedStatement stmt = conn.prepareStatement(SQLSentences.insertBalance())) {
       stmt.setString(1, uuid.toString());
-      stmt.setString(2, currency);
+      stmt.setString(2, currency.getId());
       stmt.setBigDecimal(3, amount);
       stmt.executeUpdate();
     }

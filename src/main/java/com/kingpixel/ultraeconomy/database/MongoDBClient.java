@@ -3,7 +3,9 @@ package com.kingpixel.ultraeconomy.database;
 import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.Model.DataBaseConfig;
 import com.kingpixel.ultraeconomy.UltraEconomy;
+import com.kingpixel.ultraeconomy.config.Currencies;
 import com.kingpixel.ultraeconomy.models.Account;
+import com.kingpixel.ultraeconomy.models.Currency;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.*;
@@ -173,10 +175,10 @@ public class MongoDBClient extends DatabaseClient {
     );
   }
 
-  private void addTransaction(UUID uuid, String currency, BigDecimal amount, TransactionType type, boolean processed) {
+  private void addTransaction(UUID uuid, Currency currency, BigDecimal amount, TransactionType type, boolean processed) {
     CompletableFuture.runAsync(() -> {
         Document tx = new Document("account_uuid", uuid.toString())
-          .append("currency_id", currency)
+          .append("currency_id", currency.getId())
           .append("amount", new Decimal128(amount)) // ✅ siempre Decimal128
           .append("type", type.name())
           .append("processed", processed)
@@ -219,8 +221,12 @@ public class MongoDBClient extends DatabaseClient {
           continue;
         }
 
-        String currency = tx.getString("currency_id");
-
+        String currencyId = tx.getString("currency_id");
+        Currency currency = Currencies.getCurrency(currencyId);
+        if (currency == null) {
+          CobbleUtils.LOGGER.error("Invalid currency in transaction: " + tx.toJson());
+          continue;
+        }
         BigDecimal amount;
         Object rawAmount = tx.get("amount");
         if (rawAmount instanceof Decimal128 dec) {
@@ -262,7 +268,7 @@ public class MongoDBClient extends DatabaseClient {
 
 
   @Override
-  public boolean addBalance(UUID uuid, String currency, BigDecimal amount) {
+  public boolean addBalance(UUID uuid, Currency currency, BigDecimal amount) {
     Account account = getCachedAccount(uuid);
     boolean result = true;
     if (account == null) {
@@ -275,7 +281,7 @@ public class MongoDBClient extends DatabaseClient {
   }
 
   @Override
-  public boolean removeBalance(UUID uuid, String currency, BigDecimal amount) {
+  public boolean removeBalance(UUID uuid, Currency currency, BigDecimal amount) {
     Account account = getCachedAccount(uuid);
     boolean result = true;
     if (account == null) {
@@ -288,7 +294,7 @@ public class MongoDBClient extends DatabaseClient {
   }
 
   @Override
-  public BigDecimal setBalance(UUID uuid, String currency, BigDecimal amount) {
+  public BigDecimal setBalance(UUID uuid, Currency currency, BigDecimal amount) {
     Account account = getCachedAccount(uuid);
     if (account == null) {
       addTransaction(uuid, currency, amount, TransactionType.SET, false);
@@ -300,17 +306,17 @@ public class MongoDBClient extends DatabaseClient {
   }
 
   @Override
-  public BigDecimal getBalance(UUID uuid, String currency) {
+  public BigDecimal getBalance(UUID uuid, Currency currency) {
     return getAccount(uuid).getBalance(currency);
   }
 
   @Override
-  public boolean hasEnoughBalance(UUID uuid, String currency, BigDecimal amount) {
+  public boolean hasEnoughBalance(UUID uuid, Currency currency, BigDecimal amount) {
     return getAccount(uuid).hasEnoughBalance(currency, amount);
   }
 
   @Override
-  public List<Account> getTopBalances(String currency, int page, int playersPerPage) {
+  public List<Account> getTopBalances(Currency currency, int page, int playersPerPage) {
     List<Account> topAccounts = new ArrayList<>();
     int skip = (page - 1) * playersPerPage;
     int index = skip + 1;

@@ -56,10 +56,7 @@ public class SetCommand {
                             context.getSource().sendError(Text.literal("§cPlayer not found"));
                           }
                         }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR)
-                        .exceptionally(e -> {
-                          e.printStackTrace();
-                          return null;
-                        });
+                        .exceptionally(e -> Register.sendFeedBack(e, context));
                       return 1;
                     })
                 )

@@ -21,6 +21,7 @@ public class Config {
   private boolean debug;
   private boolean notifications;
   private boolean aggressiveSave;
+  private boolean useCurrencyDefaultWhenNotFound;
   private String lang;
   private List<String> commands;
   private DataBaseConfig database;
@@ -33,6 +34,7 @@ public class Config {
     debug = false;
     notifications = true;
     aggressiveSave = false;
+    useCurrencyDefaultWhenNotFound = false;
     lang = "en_us";
     commands = List.of("money", "balance", "bal", "eco", "ultraeconomy");
     database = new DataBaseConfig();

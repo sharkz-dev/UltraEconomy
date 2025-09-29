@@ -46,7 +46,7 @@ public class BalTopMenu {
         ChestTemplate template = ChestTemplate.builder(rows).build();
 
         // Obtenemos la lista directamente, ya viene con +1 internamente
-        List<Account> accounts = DatabaseFactory.INSTANCE.getTopBalances(currency.getId(), page, playersPerPage);
+        List<Account> accounts = DatabaseFactory.INSTANCE.getTopBalances(currency, page, playersPerPage);
 
         // Si la lista es mayor que playersPerPage, hay siguiente página
         boolean hasNextPage = accounts.size() > playersPerPage;

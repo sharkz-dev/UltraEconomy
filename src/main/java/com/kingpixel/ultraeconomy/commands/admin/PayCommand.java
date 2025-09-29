@@ -4,12 +4,14 @@ import com.kingpixel.cobbleutils.api.PermissionApi;
 import com.kingpixel.cobbleutils.command.suggests.CobbleUtilsSuggests;
 import com.kingpixel.ultraeconomy.UltraEconomy;
 import com.kingpixel.ultraeconomy.api.UltraEconomyApi;
+import com.kingpixel.ultraeconomy.commands.Register;
 import com.kingpixel.ultraeconomy.config.Currencies;
 import com.kingpixel.ultraeconomy.models.Currency;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -61,7 +63,7 @@ public class PayCommand {
                     }
                     var currencyId = StringArgumentType.getString(context, "currency");
                     var amount = BigDecimal.valueOf(FloatArgumentType.getFloat(context, "amount"));
-                    run(executor, target, currencyId, amount);
+                    run(executor, target, currencyId, amount, context);
                     return 1;
                   })
               )
@@ -69,7 +71,7 @@ public class PayCommand {
       );
   }
 
-  private static void run(ServerPlayerEntity executor, String target, String currencyId, BigDecimal amount) {
+  private static void run(ServerPlayerEntity executor, String target, String currencyId, BigDecimal amount, CommandContext<ServerCommandSource> context) {
     CompletableFuture.runAsync(() -> {
         Currency currency = Currencies.getCurrency(currencyId);
 
@@ -84,10 +86,7 @@ public class PayCommand {
         }
         UltraEconomyApi.transfer(executor.getUuid(), targetUUID, currency.getId(), amount);
       }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR)
-      .exceptionally(e -> {
-        e.printStackTrace();
-        return null;
-      });
+      .exceptionally(e -> Register.sendFeedBack(e, context));
   }
 
 }

@@ -33,6 +33,7 @@ public class Currency {
   private String singular;
   private String plural;
   private String[] SUFFIXES;
+  private String[] currencyIds;
 
   transient
   private Map<Locale, Cache<BigDecimal, String>> formatCache;
@@ -44,6 +45,7 @@ public class Currency {
     this.singular = "Dollar";
     this.plural = "Dollars";
     this.SUFFIXES = new String[]{"", "K", "M", "B", "T"};
+    this.currencyIds = new String[]{};
   }
 
   public Currency(boolean primary, byte decimals, String symbol) {
@@ -53,6 +55,7 @@ public class Currency {
     this.decimals = decimals;
     this.defaultBalance = BigDecimal.ZERO;
     this.symbol = symbol;
+
   }
 
 

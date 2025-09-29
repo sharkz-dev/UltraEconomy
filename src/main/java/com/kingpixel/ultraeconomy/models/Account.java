@@ -61,26 +61,26 @@ public class Account {
     this.balances = defaultBalances();
   }
 
-  public BigDecimal getBalance(String currency) {
-    return balances.getOrDefault(currency, null);
+  public BigDecimal getBalance(Currency currency) {
+    return balances.getOrDefault(currency.getId(), null);
   }
 
-  public boolean addBalance(String currency, BigDecimal amount) {
-    balances.merge(currency, amount, BigDecimal::add);
+  public boolean addBalance(Currency currency, BigDecimal amount) {
+    balances.merge(currency.getId(), amount, BigDecimal::add);
     return true;
   }
 
-  public boolean removeBalance(String currency, BigDecimal amount) {
-    balances.merge(currency, amount, BigDecimal::subtract);
+  public boolean removeBalance(Currency currency, BigDecimal amount) {
+    balances.merge(currency.getId(), amount, BigDecimal::subtract);
     return true;
   }
 
-  public BigDecimal setBalance(String currency, BigDecimal amount) {
-    balances.put(currency, amount);
+  public BigDecimal setBalance(Currency currency, BigDecimal amount) {
+    balances.put(currency.getId(), amount);
     return amount;
   }
 
-  public boolean hasEnoughBalance(String currency, BigDecimal amount) {
+  public boolean hasEnoughBalance(Currency currency, BigDecimal amount) {
     return getBalance(currency).compareTo(amount) >= 0;
   }
 
@@ -97,7 +97,7 @@ public class Account {
 
   public GooeyButton getButton(Currency currency) {
     List<String> lore = List.of(
-      "§7Balance: §e" + currency.format(getBalance(currency.getId()))
+      "§7Balance: §e" + currency.format(getBalance(currency))
     );
     return GooeyButton.builder()
       .display(PlayerUtils.getHeadItem(playerUUID))

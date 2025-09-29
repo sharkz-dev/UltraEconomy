@@ -4,12 +4,15 @@ import com.kingpixel.cobbleutils.Model.messages.HiperMessage;
 import com.kingpixel.ultraeconomy.UltraEconomy;
 import com.kingpixel.ultraeconomy.commands.admin.*;
 import com.kingpixel.ultraeconomy.config.Currencies;
+import com.kingpixel.ultraeconomy.exceptions.UnknownCurrencyException;
 import com.kingpixel.ultraeconomy.models.Currency;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -24,7 +27,7 @@ public class Register {
       var base = CommandManager.literal(command);
       base.executes(context -> {
         ServerPlayerEntity player = context.getSource().getPlayer();
-        BalanceCommand.run(player == null ? null : player.getUuid(), context.getSource(),
+        BalanceCommand.run(player == null ? null : player.getUuid(), context,
           Currencies.DEFAULT_CURRENCY.getId());
         return 1;
       });
@@ -47,5 +50,23 @@ public class Register {
       message.sendMessage(playerUUID, UltraEconomy.lang.getPrefix(), false, false, null,
         message.getRawMessage().replace("%amount%", currency.format(value)));
     }
+  }
+
+  public static Void sendFeedBack(Throwable e, CommandContext<ServerCommandSource> context) {
+    if (e instanceof UnknownCurrencyException) {
+      if (context.getSource().isExecutedByPlayer()) {
+        ServerPlayerEntity player = context.getSource().getPlayer();
+        if (player != null)
+          UltraEconomy.lang.getMessageUnknownCurrency()
+            .sendMessage(player.getUuid(), UltraEconomy.lang.getPrefix(), false);
+      } else {
+        context.getSource().sendError(
+          Text.literal("§cUnknown currency")
+        );
+      }
+      return null;
+    }
+    e.printStackTrace();
+    return null;
   }
 }
