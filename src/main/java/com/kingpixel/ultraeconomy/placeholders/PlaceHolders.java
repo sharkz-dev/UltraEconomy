@@ -37,8 +37,7 @@ public class PlaceHolders {
         Identifier.of("ultraeconomy", "symbol"), (ctx, arg) -> {
           if (arg == null || arg.isEmpty()) return PlaceholderResult.invalid();
           Currency currency = Currencies.getCurrency(arg);
-          if (currency == null) return PlaceholderResult.invalid();
-          return PlaceholderResult.value(currency.getSymbol());
+          return PlaceholderResult.value(currency.getSymbolText());
         }
       );
 
@@ -52,7 +51,7 @@ public class PlaceHolders {
           Currency currency = Currencies.getCurrency(arg);
           if (currency == null) return PlaceholderResult.invalid();
           return PlaceholderResult.value(
-            currency.formatSimpleAmount(
+            currency.formatSimpleAmountText(
               UltraEconomyApi.getBalance(player.getUuid(), currency.getId()),
               UltraEconomyApi.getLocale(player)
             )
@@ -70,7 +69,7 @@ public class PlaceHolders {
           Currency currency = Currencies.getCurrency(arg);
           if (currency == null) return PlaceholderResult.invalid();
           return PlaceholderResult.value(
-            currency.formatAmount(
+            currency.formatAmountText(
               UltraEconomyApi.getBalance(player.getUuid(), currency.getId()),
               UltraEconomyApi.getLocale(player)
             )
