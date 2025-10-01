@@ -13,27 +13,23 @@ import java.util.Map;
  */
 public class Currencies {
   private static String PATH = UltraEconomy.PATH + "/currencys/";
-  private static final Map<String, Currency> CURRENCIES = new HashMap<>();
-  public static String[] CURRENCY_IDS = new String[0];
+  private static final Map<String, Currency> CURRENCY_MAP = new HashMap<>();
+  public static String[] CURRENCY_IDS;
   public static Currency DEFAULT_CURRENCY;
 
   public static void init() {
-    CURRENCIES.clear();
+    CURRENCY_MAP.clear();
     var folder = Utils.getAbsolutePath(PATH);
     folder.mkdirs();
     var files = Utils.getFiles(folder);
     if (files.isEmpty()) {
-      Currency currency = new Currency(true, (byte) 2, "$", new String[]{
-        "impactor:dollars"
-      });
-      currency.setId("dollars");
-      CURRENCIES.put(currency.getId(), currency);
+      Currency currency = new Currency(true, (byte) 2, "$");
+      currency.setId("dollar");
+      CURRENCY_MAP.put(currency.getId(), currency);
       writeCurrency(currency);
-      Currency currency2 = new Currency(false, (byte) 2, "t", new String[]{
-        "impactor:tokens"
-      });
-      currency2.setId("tokens");
-      CURRENCIES.put(currency2.getId(), currency2);
+      Currency currency2 = new Currency(false, (byte) 2, "€");
+      currency2.setId("euro");
+      CURRENCY_MAP.put(currency2.getId(), currency2);
       writeCurrency(currency2);
     } else {
       for (var file : files) {
@@ -42,7 +38,7 @@ public class Currencies {
             Utils.readFileSync(file), Currency.class
           );
           currency.setId(file.getName().replace(".json", ""));
-          CURRENCIES.put(currency.getId(), currency);
+          CURRENCY_MAP.put(currency.getId(), currency);
           writeCurrency(currency);
         } catch (Exception e) {
           e.printStackTrace();
@@ -51,7 +47,7 @@ public class Currencies {
     }
 
     Map<String, Currency> aliases = new HashMap<>();
-    for (Currency currency : CURRENCIES.values()) {
+    for (Currency currency : CURRENCY_MAP.values()) {
       if (currency.getCurrencyIds() != null) {
         for (String alias : currency.getCurrencyIds()) {
           aliases.put(alias, currency);
@@ -59,20 +55,20 @@ public class Currencies {
       }
     }
 
-    CURRENCIES.putAll(aliases);
+    CURRENCY_MAP.putAll(aliases);
 
 
-    CURRENCIES.forEach((k, v) -> {
+    CURRENCY_MAP.forEach((k, v) -> {
       v.init();
       if (v.isPrimary()) {
         DEFAULT_CURRENCY = v;
       }
     });
-    CURRENCY_IDS = CURRENCIES.keySet().toArray(new String[0]);
+    CURRENCY_IDS = CURRENCY_MAP.keySet().toArray(new String[0]);
   }
 
-  public static Map<String, Currency> getCurrencies() {
-    return CURRENCIES;
+  public static Map<String, Currency> getCurrencyMap() {
+    return CURRENCY_MAP;
   }
 
   private static void writeCurrency(Currency currency) {
@@ -81,7 +77,7 @@ public class Currencies {
   }
 
   public static Currency getCurrency(String currency) throws UnknownCurrencyException {
-    var curr = CURRENCIES.get(currency);
+    var curr = CURRENCY_MAP.get(currency);
     if (curr == null && UltraEconomy.config.isUseCurrencyDefaultWhenNotFound()) {
       curr = DEFAULT_CURRENCY;
     }

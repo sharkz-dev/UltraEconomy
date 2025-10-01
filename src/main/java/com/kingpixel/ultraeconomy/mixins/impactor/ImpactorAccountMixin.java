@@ -22,9 +22,11 @@ import java.util.Map;
 @Mixin(ImpactorAccount.class)
 public abstract class ImpactorAccountMixin {
 
-  @Unique private final Map<Currency, String> currencyIdCache = new HashMap<>();
+  @Unique
+  private final Map<Currency, String> currencyIdCache = new HashMap<>();
 
-  @Unique private String getCurrencyId(Currency currency) {
+  @Unique
+  private String getCurrencyId(Currency currency) {
     return currencyIdCache.computeIfAbsent(currency, c -> c.key().value().replace("impactor:", ""));
   }
 
@@ -49,7 +51,7 @@ public abstract class ImpactorAccountMixin {
                         CallbackInfoReturnable<EconomyTransaction> cir) {
     if (UltraEconomy.migrationDone) {
       ImpactorAccount self = (ImpactorAccount) (Object) this;
-      boolean success = UltraEconomyApi.withdraw(self.owner(), getCurrencyId(self.currency()), amount);
+      UltraEconomyApi.withdraw(self.owner(), getCurrencyId(self.currency()), amount);
       cir.setReturnValue(EconomyTransaction.compose()
         .account(self)
         .amount(amount)
@@ -60,13 +62,13 @@ public abstract class ImpactorAccountMixin {
 
   @Inject(method = "transfer(Lnet/impactdev/impactor/api/economy/accounts/Account;Ljava/math/BigDecimal;)" +
     "Lnet/impactdev/impactor/api/economy/transactions/EconomyTransferTransaction;", at = {@At("HEAD")}, cancellable = true, remap = false)
-  private void transfer(Account _to, BigDecimal amount, CallbackInfoReturnable<EconomyTransferTransaction> cir) {
+  private void transfer(Account target, BigDecimal amount, CallbackInfoReturnable<EconomyTransferTransaction> cir) {
     if (UltraEconomy.migrationDone) {
       ImpactorAccount self = (ImpactorAccount) (Object) this;
-      boolean success = UltraEconomyApi.transfer(self.owner(), _to.owner(), getCurrencyId(self.currency()), amount);
+      UltraEconomyApi.transfer(self.owner(), target.owner(), getCurrencyId(self.currency()), amount);
       cir.setReturnValue(EconomyTransferTransaction.compose()
         .from(self)
-        .to(_to)
+        .to(target)
         .amount(amount)
         .build());
     }

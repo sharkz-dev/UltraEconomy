@@ -10,6 +10,7 @@ import com.kingpixel.ultraeconomy.database.DatabaseFactory;
 import com.kingpixel.ultraeconomy.exceptions.UnknownCurrencyException;
 import com.kingpixel.ultraeconomy.models.Account;
 import com.kingpixel.ultraeconomy.models.Currency;
+import com.kingpixel.ultraeconomy.placeholders.PlaceHoldersPrefix;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.UserCache;
 import org.jetbrains.annotations.NotNull;
@@ -27,15 +28,9 @@ public class UltraEconomyApi {
    * Get the account of a target by UUID
    *
    * @param playerUUID the target's UUID
-   *
    * @return the account
    */
   public static Account getAccount(@NotNull UUID playerUUID) {
-    //long start = System.currentTimeMillis();
-    //long end = System.currentTimeMillis();
-    //if (UltraEconomy.config.isDebug()) {
-    //  CobbleUtils.LOGGER.info(UltraEconomy.MOD_ID, "Get account with playerUUID took " + (end - start) + "ms");
-    //}
     return DatabaseFactory.INSTANCE.getAccount(playerUUID);
   }
 
@@ -43,7 +38,6 @@ public class UltraEconomyApi {
    * Get the account of a target by name
    *
    * @param playerName the target's name
-   *
    * @return the account
    */
   public static Account getAccount(@NotNull String playerName) {
@@ -60,7 +54,7 @@ public class UltraEconomyApi {
     if (UltraEconomy.config.isNotifications()) {
       var message = UltraEconomy.lang.getMessageWithdraw();
       message.sendMessage(uuid, UltraEconomy.lang.getPrefix(), false, false, null,
-        message.getRawMessage().replace("%amount%", c.format(amount)));
+        message.getRawMessage().replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, c.format(amount)));
     }
     aggressiveSave(uuid);
     long end = System.currentTimeMillis();
@@ -81,7 +75,6 @@ public class UltraEconomyApi {
    * Get a currency by its ID
    *
    * @param currency the currency ID
-   *
    * @return the currency
    */
   private static Currency getCurrency(String currency) throws UnknownCurrencyException {
@@ -94,7 +87,6 @@ public class UltraEconomyApi {
    * @param uuid     the target's UUID
    * @param currency the currency
    * @param amount   the amount
-   *
    * @return true if successful, false otherwise
    */
   public static boolean deposit(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
@@ -104,7 +96,7 @@ public class UltraEconomyApi {
     if (UltraEconomy.config.isNotifications()) {
       var message = UltraEconomy.lang.getMessageDeposit();
       message.sendMessage(uuid, UltraEconomy.lang.getPrefix(), false, false, null,
-        message.getRawMessage().replace("%amount%", c.format(amount,
+        message.getRawMessage().replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, c.format(amount,
           getLocale(uuid))));
     }
     aggressiveSave(uuid);
@@ -121,7 +113,6 @@ public class UltraEconomyApi {
    * @param uuid     the target's UUID
    * @param currency the currency
    * @param amount   the amount
-   *
    * @return the new balance, or null if the currency does not exist
    */
   public static @Nullable BigDecimal setBalance(@NotNull UUID uuid, @NotNull String currency, BigDecimal amount) {
@@ -131,7 +122,7 @@ public class UltraEconomyApi {
     if (UltraEconomy.config.isNotifications()) {
       var message = UltraEconomy.lang.getMessageSetBalance();
       message.sendMessage(uuid, UltraEconomy.lang.getPrefix(), false, false, null,
-        message.getRawMessage().replace("%amount%", c.format(amount, getLocale(uuid))));
+        message.getRawMessage().replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, c.format(amount, getLocale(uuid))));
     }
     aggressiveSave(uuid);
     long end = System.currentTimeMillis();
@@ -146,15 +137,9 @@ public class UltraEconomyApi {
    *
    * @param uuid     the target's UUID
    * @param currency the currency
-   *
    * @return the balance, or null if the currency does not exist
    */
   public static @Nullable BigDecimal getBalance(@NotNull UUID uuid, @NotNull String currency) {
-    //long start = System.currentTimeMillis();
-    //long end = System.currentTimeMillis();
-    //if (UltraEconomy.config.isDebug()) {
-    //  CobbleUtils.LOGGER.info(UltraEconomy.MOD_ID, "Get balance took " + (end - start) + "ms");
-    //}
     Currency c = getCurrency(currency);
     return DatabaseFactory.INSTANCE.getBalance(uuid, c);
   }
@@ -165,7 +150,6 @@ public class UltraEconomyApi {
    * @param uuid     the target's UUID
    * @param currency the currency
    * @param amount   the amount
-   *
    * @return true if the target has enough balance
    */
   public static boolean hasEnoughBalance(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
@@ -175,7 +159,7 @@ public class UltraEconomyApi {
     if (UltraEconomy.config.isNotifications() && !result) {
       var message = UltraEconomy.lang.getMessageNoMoney();
       message.sendMessage(uuid, UltraEconomy.lang.getPrefix(), false, false, null,
-        message.getRawMessage().replace("%amount%", c.format(amount, getLocale(uuid))));
+        message.getRawMessage().replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, c.format(amount, getLocale(uuid))));
     }
     long end = System.currentTimeMillis();
     if (UltraEconomy.config.isDebug()) {
@@ -227,13 +211,13 @@ public class UltraEconomyApi {
       var messageSender = UltraEconomy.lang.getMessagePaySuccessSender();
       messageSender.sendMessage(executor, UltraEconomy.lang.getPrefix(), false, false, null,
         messageSender.getRawMessage()
-          .replace("%amount%", curr.format(amount, getLocale(executor)))
+          .replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, curr.format(amount, getLocale(executor)))
           .replace("%player%", nameTarget)
       );
       var messageReceiver = UltraEconomy.lang.getMessagePaySuccessReceiver();
       messageReceiver.sendMessage(target, UltraEconomy.lang.getPrefix(), false, false, null,
         messageReceiver.getRawMessage()
-          .replace("%amount%", curr.format(amount, getLocale(target)))
+          .replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, curr.format(amount, getLocale(target)))
           .replace("%player%", nameExecutor)
       );
     }

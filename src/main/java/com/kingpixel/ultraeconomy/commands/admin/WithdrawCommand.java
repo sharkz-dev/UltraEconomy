@@ -6,7 +6,6 @@ import com.kingpixel.ultraeconomy.UltraEconomy;
 import com.kingpixel.ultraeconomy.api.UltraEconomyApi;
 import com.kingpixel.ultraeconomy.commands.Register;
 import com.kingpixel.ultraeconomy.config.Currencies;
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.server.command.CommandManager;
@@ -21,7 +20,7 @@ import java.util.concurrent.CompletableFuture;
  * @author Carlos Varas Alonso - 23/09/2025 22:01
  */
 public class WithdrawCommand {
-  public static void put(CommandDispatcher<ServerCommandSource> dispatcher, LiteralArgumentBuilder<ServerCommandSource> base) {
+  public static void put(LiteralArgumentBuilder<ServerCommandSource> base) {
     base.then(
       CommandManager.literal("withdraw")
         .requires(source -> PermissionApi.hasPermission(source, "ultraeconomy.admin.withdraw", 2))

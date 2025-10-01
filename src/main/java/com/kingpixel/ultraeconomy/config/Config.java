@@ -18,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
  */
 @Data
 public class Config {
+  private static final String FILE_NAME = "config.json";
   private boolean debug;
   private boolean notifications;
   private boolean aggressiveSave;
@@ -47,18 +48,18 @@ public class Config {
   }
 
   public void init() {
-    CompletableFuture<Boolean> futureRead = Utils.readFileAsync(UltraEconomy.PATH, "config.json", (el) -> {
+    CompletableFuture<Boolean> futureRead = Utils.readFileAsync(UltraEconomy.PATH, FILE_NAME, callback -> {
       Gson gson = Utils.newGson();
-      UltraEconomy.config = gson.fromJson(el, Config.class);
+      UltraEconomy.config = gson.fromJson(callback, Config.class);
       String data = gson.toJson(UltraEconomy.config);
-      Utils.writeFileAsync(UltraEconomy.PATH, "config.json", data);
+      Utils.writeFileAsync(UltraEconomy.PATH, FILE_NAME, data);
     });
-    if (!(Boolean) futureRead.join()) {
-      CobbleUtils.LOGGER.info("Creating new config file at " + UltraEconomy.PATH + "/config.json");
+    if (Boolean.FALSE.equals(futureRead.join())) {
+      CobbleUtils.LOGGER.info("Creating new config file at " + UltraEconomy.PATH + "/" + FILE_NAME);
       Gson gson = Utils.newGson();
       UltraEconomy.config = this;
       String data = gson.toJson(UltraEconomy.config);
-      Utils.writeFileAsync(UltraEconomy.PATH, "config.json", data);
+      Utils.writeFileAsync(UltraEconomy.PATH, FILE_NAME, data);
     }
 
 
@@ -67,6 +68,6 @@ public class Config {
   public void writeConfig() {
     Gson gson = Utils.newGson();
     String data = gson.toJson(this);
-    Utils.writeFileAsync(UltraEconomy.PATH, "config.json", data);
+    Utils.writeFileAsync(UltraEconomy.PATH, FILE_NAME, data);
   }
 }

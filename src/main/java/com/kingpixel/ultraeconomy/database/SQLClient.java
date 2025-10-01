@@ -4,6 +4,8 @@ import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.Model.DataBaseConfig;
 import com.kingpixel.cobbleutils.Model.DataBaseType;
 import com.kingpixel.ultraeconomy.config.Currencies;
+import com.kingpixel.ultraeconomy.exceptions.DatabaseConnectionException;
+import com.kingpixel.ultraeconomy.exceptions.UnknownAccountException;
 import com.kingpixel.ultraeconomy.models.Account;
 import com.kingpixel.ultraeconomy.models.Currency;
 import com.zaxxer.hikari.HikariDataSource;
@@ -19,8 +21,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-@EqualsAndHashCode(callSuper = true) @Data
+@EqualsAndHashCode(callSuper = true)
+@Data
 public class SQLClient extends DatabaseClient {
+  private static final String KEY_AMOUNT = "amount";
   private DataBaseType dbType;
   private HikariDataSource dataSource;
   private ScheduledExecutorService transactionExecutor;
@@ -39,7 +43,7 @@ public class SQLClient extends DatabaseClient {
 
       // Inicialización
       initTables(config.getType());
-      createIndexes(config.getType()); // Ya no necesitas ensureProcessedColumnExists() si lo incluyes en initTables
+      createIndexes(); // Ya no necesitas ensureProcessedColumnExists() si lo incluyes en initTables
 
       transactionExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread t = new Thread(r, "Transaction-Worker-UltraEconomy");
@@ -51,7 +55,7 @@ public class SQLClient extends DatabaseClient {
       transactionExecutor.scheduleAtFixedRate(this::checkAndApplyTransactions, 0, 2, TimeUnit.SECONDS);
 
     } catch (Exception e) {
-      throw new RuntimeException("Failed to connect to database: " + config.getType(), e);
+      throw new DatabaseConnectionException(config.getType().name());
     }
   }
 
@@ -86,7 +90,7 @@ public class SQLClient extends DatabaseClient {
             balStmt.setString(1, uuid.toString());
             ResultSet balRs = balStmt.executeQuery();
             while (balRs.next())
-              balances.put(balRs.getString("currency_id"), balRs.getBigDecimal("amount"));
+              balances.put(balRs.getString("currency_id"), balRs.getBigDecimal(KEY_AMOUNT));
           }
           account = new Account(uuid, rs.getString("player_name"), balances);
         } else {
@@ -100,7 +104,7 @@ public class SQLClient extends DatabaseClient {
       DatabaseFactory.CACHE_ACCOUNTS.put(uuid, account);
       return account;
     } catch (SQLException e) {
-      throw new RuntimeException("Error fetching account " + uuid, e);
+      throw new UnknownAccountException(uuid);
     }
   }
 
@@ -113,7 +117,8 @@ public class SQLClient extends DatabaseClient {
     asyncExecutor.submit(() -> saveAccount(account));
   }
 
-  @Override public void saveOrUpdateAccountSync(Account account) {
+  @Override
+  public void saveOrUpdateAccountSync(Account account) {
     saveAccount(account);
   }
 
@@ -215,7 +220,7 @@ public class SQLClient extends DatabaseClient {
       while (rs.next()) {
         UUID uuid = UUID.fromString(rs.getString("uuid"));
         String playerName = rs.getString("player_name");
-        BigDecimal amount = rs.getBigDecimal("amount");
+        BigDecimal amount = rs.getBigDecimal(KEY_AMOUNT);
 
         Map<String, BigDecimal> balances = new HashMap<>();
         balances.put(currency.getId(), amount);
@@ -230,7 +235,8 @@ public class SQLClient extends DatabaseClient {
     return topAccounts;
   }
 
-  @Override public boolean existPlayerWithUUID(UUID uuid) {
+  @Override
+  public boolean existPlayerWithUUID(UUID uuid) {
     try (Connection conn = dataSource.getConnection();
          PreparedStatement stmt = conn.prepareStatement(SQLSentences.selectAccountByUUID())) {
       stmt.setString(1, uuid.toString());
@@ -278,13 +284,17 @@ public class SQLClient extends DatabaseClient {
           String currencyId = rs.getString("currency_id");
           Currency currency = Currencies.getCurrency(currencyId);
 
-          BigDecimal amount = rs.getBigDecimal("amount");
+          BigDecimal amount = rs.getBigDecimal(KEY_AMOUNT);
           TransactionType type = rs.getString("type") != null ? TransactionType.valueOf(rs.getString("type")) : TransactionType.DEPOSIT;
 
           switch (type) {
             case DEPOSIT -> account.addBalance(currency, amount);
             case WITHDRAW -> account.removeBalance(currency, amount);
             case SET -> account.setBalance(currency, amount);
+            default -> {
+              CobbleUtils.LOGGER.warn("Unknown transaction type for transaction ID " + id);
+              continue;
+            }
           }
           saveBalanceSafe(uuid, currency, account.getBalance(currency));
 
@@ -381,17 +391,7 @@ public class SQLClient extends DatabaseClient {
   }
 
 
-  private void ensureProcessedColumnExists() {
-    asyncExecutor.submit(() -> {
-      try (Connection conn = dataSource.getConnection(); Statement stmt = conn.createStatement()) {
-        stmt.executeUpdate("ALTER TABLE transactions ADD COLUMN processed INTEGER DEFAULT 0");
-      } catch (SQLException e) {
-        if (!e.getMessage().contains("duplicate column")) e.printStackTrace();
-      }
-    });
-  }
-
-  private void createIndexes(DataBaseType type) {
+  private void createIndexes() {
     asyncExecutor.submit(() -> {
       try (Connection conn = dataSource.getConnection(); Statement stmt = conn.createStatement()) {
         stmt.executeUpdate("CREATE INDEX if NOT EXISTS idx_balances_currency_amount ON balances(currency_id, amount DESC)");

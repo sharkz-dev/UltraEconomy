@@ -25,6 +25,8 @@ import java.util.concurrent.CompletableFuture;
  * @author Carlos Varas Alonso - 23/09/2025 22:01
  */
 public class BaltopCommand {
+  private static final String CURRENCY_ARG = "currency";
+
   public static void put(CommandDispatcher<ServerCommandSource> dispatcher, LiteralArgumentBuilder<ServerCommandSource> base) {
     base.then(get());
     dispatcher.register(get());
@@ -35,7 +37,7 @@ public class BaltopCommand {
   private static LiteralArgumentBuilder<ServerCommandSource> getBalTopMenu() {
     return CommandManager.literal("baltopmenu")
       .then(
-        CommandManager.argument("currency", StringArgumentType.string())
+        CommandManager.argument(CURRENCY_ARG, StringArgumentType.string())
           .suggests((context, builder) -> {
             var size = Currencies.CURRENCY_IDS.length;
             for (int i = 0; i < size; i++) {
@@ -44,14 +46,8 @@ public class BaltopCommand {
             return builder.buildFuture();
           })
           .executes(context -> {
-            String currencyId = StringArgumentType.getString(context, "currency");
+            String currencyId = StringArgumentType.getString(context, CURRENCY_ARG);
             Currency currency = Currencies.getCurrency(currencyId);
-            if (currency == null) {
-              context.getSource().sendMessage(
-                Text.literal("§cCurrency not found: " + currencyId)
-              );
-              return 0;
-            }
             UltraEconomy.lang.getBalTopMenu().open(context.getSource().getPlayer(), 1,
               currency);
             return 1;
@@ -65,7 +61,7 @@ public class BaltopCommand {
         run(context, Currencies.DEFAULT_CURRENCY.getId(), 1);
         return 1;
       }).then(
-        CommandManager.argument("currency", StringArgumentType.string())
+        CommandManager.argument(CURRENCY_ARG, StringArgumentType.string())
           .suggests((context, builder) -> {
             var size = Currencies.CURRENCY_IDS.length;
             for (int i = 0; i < size; i++) {
@@ -74,13 +70,13 @@ public class BaltopCommand {
             return builder.buildFuture();
           })
           .executes(context -> {
-            run(context, StringArgumentType.getString(context, "currency"), 1);
+            run(context, StringArgumentType.getString(context, CURRENCY_ARG), 1);
             return 1;
           }).then(
             CommandManager.argument("page", IntegerArgumentType.integer(1))
               .executes(context -> {
                 run(context, StringArgumentType.getString(context,
-                    "currency"),
+                    CURRENCY_ARG),
                   IntegerArgumentType.getInteger(context, "page"));
                 return 1;
               })
@@ -133,7 +129,6 @@ public class BaltopCommand {
           .replace("%next_page%", Integer.toString(nextPage)));
         String output = joiner.toString();
 
-        // Enviar todo de una sola vez
         source.sendFeedback(() -> AdventureTranslator.toNative(output), false);
       }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR)
       .exceptionally(e -> Register.sendFeedBack(e, context));

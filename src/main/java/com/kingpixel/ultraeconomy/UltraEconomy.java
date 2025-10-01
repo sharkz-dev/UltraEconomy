@@ -86,15 +86,13 @@ public class UltraEconomy implements ModInitializer {
       CobbleUtils.shutdownAndAwait(ULTRA_ECONOMY_EXECUTOR);
     });
 
-    CommandRegistrationCallback.EVENT.register(Register::register);
+    CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> Register.register(dispatcher));
   }
 
   private void tasks() {
     // Aquí puedes agregar tareas programadas si es necesario
     ULTRA_ECONOMY_SCHEDULER.scheduleAtFixedRate(() -> {
-      DatabaseFactory.CACHE_ACCOUNTS.asMap().values().forEach(account -> {
-        DatabaseFactory.INSTANCE.saveOrUpdateAccount(account);
-      });
+      DatabaseFactory.CACHE_ACCOUNTS.asMap().values().forEach(account -> DatabaseFactory.INSTANCE.saveOrUpdateAccount(account));
     }, 0, 30, TimeUnit.SECONDS);
   }
 }

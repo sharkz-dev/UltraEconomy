@@ -7,6 +7,7 @@ import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.Model.DataBaseConfig;
 import com.kingpixel.cobbleutils.Model.DataBaseType;
 import com.kingpixel.ultraeconomy.UltraEconomy;
+import com.kingpixel.ultraeconomy.exceptions.DatabaseConnectionException;
 import com.kingpixel.ultraeconomy.models.Account;
 import org.jetbrains.annotations.NotNull;
 
@@ -38,7 +39,7 @@ public class DatabaseFactory {
     })
     .build();
 
-  public static DatabaseClient INSTANCE = null;
+  public static DatabaseClient INSTANCE;
 
   public static void init(DataBaseConfig config) {
     if (INSTANCE != null) INSTANCE.disconnect();
@@ -46,8 +47,9 @@ public class DatabaseFactory {
       case JSON -> INSTANCE = new JSONClient();
       case SQLITE, MYSQL, MARIADB, H2 -> INSTANCE = new SQLClient();
       case MONGODB -> INSTANCE = new MongoDBClient();
-      default -> throw new RuntimeException("Unknown database type " + Arrays.toString(DataBaseType.values()));
+      default ->
+        throw new DatabaseConnectionException("Unknown database type " + Arrays.toString(DataBaseType.values()));
     }
-    if (INSTANCE != null) INSTANCE.connect(config);
+    INSTANCE.connect(config);
   }
 }

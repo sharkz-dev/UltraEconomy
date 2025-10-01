@@ -23,6 +23,9 @@ import java.util.concurrent.CompletableFuture;
  * @author Carlos Varas Alonso - 23/09/2025 22:01
  */
 public class BalanceCommand {
+  private static final String KEY_CURRENCY = "currency";
+  private static final String KEY_PLAYER = "player";
+
   public static void put(CommandDispatcher<ServerCommandSource> dispatcher, LiteralArgumentBuilder<ServerCommandSource> base) {
     base.then(get());
     dispatcher.register(get());
@@ -35,7 +38,7 @@ public class BalanceCommand {
         run(player == null ? null : player.getUuid(), context, Currencies.DEFAULT_CURRENCY.getId());
         return 1;
       }).then(
-        CommandManager.argument("currency", StringArgumentType.string())
+        CommandManager.argument(KEY_CURRENCY, StringArgumentType.string())
           .suggests((context, builder) -> {
             var size = Currencies.CURRENCY_IDS.length;
             for (int i = 0; i < size; i++) {
@@ -45,27 +48,28 @@ public class BalanceCommand {
           }).executes(context -> {
             ServerPlayerEntity player = context.getSource().getPlayer();
             run(player == null ? null : player.getUuid(), context, StringArgumentType.getString(context,
-              "currency"));
+              KEY_CURRENCY));
             return 1;
           }).then(
-            CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.suggestPlayerName("player", List.of(
+            CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.suggestPlayerName(KEY_PLAYER, List.of(
                 "ultraeconomy.admin.balance"
               ), 0)
               .executes(context -> {
                 CompletableFuture.runAsync(() -> {
-                  var target = StringArgumentType.getString(context, "player");
-                  if (!UltraEconomyApi.existsPlayerWithName(target)) {
-                    context.getSource().sendMessage(Text.literal("§cPlayer not found"));
-                    return;
-                  }
-                  var currencyId = StringArgumentType.getString(context, "currency");
-                  var targetUUID = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerUUIDWithName(target);
-                  run(targetUUID, context, currencyId);
-                }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR).exceptionally(e -> {
-                  if (e instanceof UnknownCurrencyException) return null;
-                  e.printStackTrace();
-                  return null;
-                });
+                    var target = StringArgumentType.getString(context, KEY_PLAYER);
+                    if (!UltraEconomyApi.existsPlayerWithName(target)) {
+                      context.getSource().sendMessage(Text.literal("§cPlayer not found"));
+                      return;
+                    }
+                    var currencyId = StringArgumentType.getString(context, KEY_CURRENCY);
+                    var targetUUID = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerUUIDWithName(target);
+                    run(targetUUID, context, currencyId);
+                  }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR)
+                  .exceptionally(e -> {
+                    if (e instanceof UnknownCurrencyException) return null;
+                    e.printStackTrace();
+                    return null;
+                  });
                 return 1;
               })
           )
