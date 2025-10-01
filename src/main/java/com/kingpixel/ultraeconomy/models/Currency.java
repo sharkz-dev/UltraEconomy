@@ -52,8 +52,7 @@ public class Currency {
   private Text symbolText;
 
   public Text getSymbolText() {
-    if (symbolText == null) symbolText = AdventureTranslator.toNative(this.symbol);
-    return symbolText;
+    return symbolText == null ? (symbolText = AdventureTranslator.toNative(this.symbol)) : symbolText;
   }
 
   public Currency() {
@@ -64,13 +63,14 @@ public class Currency {
     this.currencyIds = new String[]{};
   }
 
-  public Currency(boolean primary, byte decimals, String symbol) {
+  public Currency(boolean primary, byte decimals, String symbol, String[] currencyIds) {
     super();
     this.primary = primary;
     this.transferable = true;
     this.decimals = decimals;
     this.defaultBalance = BigDecimal.ZERO;
     this.symbol = symbol;
+    this.currencyIds = currencyIds;
   }
 
   /**

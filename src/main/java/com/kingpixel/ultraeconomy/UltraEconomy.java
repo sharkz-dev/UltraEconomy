@@ -25,11 +25,10 @@ public class UltraEconomy implements ModInitializer {
   public static MinecraftServer server;
   public static Config config = new Config();
   public static Lang lang = new Lang();
-  public static final ExecutorService ULTRA_ECONOMY_EXECUTOR = Executors.newSingleThreadExecutor(
-    new ThreadFactoryBuilder()
-      .setNameFormat("ultra economy-%d")
-      .setDaemon(true)
-      .build()
+  public static final ExecutorService ULTRA_ECONOMY_EXECUTOR = Executors.newFixedThreadPool(4, new ThreadFactoryBuilder()
+    .setNameFormat("ultra economy-executor-%d")
+    .setDaemon(true)
+    .build()
   );
   public static final ScheduledExecutorService ULTRA_ECONOMY_SCHEDULER = Executors.newScheduledThreadPool(1,
     new ThreadFactoryBuilder()
@@ -45,10 +44,10 @@ public class UltraEconomy implements ModInitializer {
     if (!folder.exists()) {
       folder.mkdirs();
     }
-    PlaceHolders.register();
     load();
     events();
     tasks();
+    PlaceHolders.register();
   }
 
   public static void load() {

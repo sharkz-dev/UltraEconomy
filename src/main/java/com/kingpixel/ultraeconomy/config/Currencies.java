@@ -23,12 +23,16 @@ public class Currencies {
     folder.mkdirs();
     var files = Utils.getFiles(folder);
     if (files.isEmpty()) {
-      Currency currency = new Currency(true, (byte) 2, "$");
-      currency.setId("dollar");
+      Currency currency = new Currency(true, (byte) 2, "$", new String[]{
+        "impactor:dollars"
+      });
+      currency.setId("dollars");
       CURRENCIES.put(currency.getId(), currency);
       writeCurrency(currency);
-      Currency currency2 = new Currency(false, (byte) 2, "€");
-      currency2.setId("euro");
+      Currency currency2 = new Currency(false, (byte) 2, "t", new String[]{
+        "impactor:tokens"
+      });
+      currency2.setId("tokens");
       CURRENCIES.put(currency2.getId(), currency2);
       writeCurrency(currency2);
     } else {
