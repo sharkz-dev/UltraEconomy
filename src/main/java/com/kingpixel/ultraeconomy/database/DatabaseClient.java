@@ -1,7 +1,10 @@
 package com.kingpixel.ultraeconomy.database;
 
 import com.kingpixel.cobbleutils.Model.DataBaseConfig;
+import com.kingpixel.cobbleutils.command.suggests.CobbleUtilsSuggests;
+import com.kingpixel.ultraeconomy.api.UltraEconomyApi;
 import com.kingpixel.ultraeconomy.models.Account;
+import com.kingpixel.ultraeconomy.models.Currency;
 
 import javax.annotation.Nullable;
 import java.math.BigDecimal;
@@ -60,7 +63,7 @@ public abstract class DatabaseClient {
    *
    * @return true if successful, false otherwise
    */
-  public abstract boolean addBalance(UUID uuid, String currency, BigDecimal amount);
+  public abstract boolean addBalance(UUID uuid, Currency currency, BigDecimal amount);
 
   /**
    * Withdraw balance from an account
@@ -71,7 +74,7 @@ public abstract class DatabaseClient {
    *
    * @return true if successful, false otherwise
    */
-  public boolean deposit(UUID uuid, String currency, BigDecimal amount) {
+  public boolean deposit(UUID uuid, Currency currency, BigDecimal amount) {
     return addBalance(uuid, currency, amount);
   }
 
@@ -84,7 +87,7 @@ public abstract class DatabaseClient {
    *
    * @return true if successful, false otherwise
    */
-  public abstract boolean removeBalance(UUID uuid, String currency, BigDecimal amount);
+  public abstract boolean removeBalance(UUID uuid, Currency currency, BigDecimal amount);
 
   /**
    * Withdraw balance from an account
@@ -95,7 +98,7 @@ public abstract class DatabaseClient {
    *
    * @return true if successful, false otherwise
    */
-  public boolean withdraw(UUID uuid, String currency, BigDecimal amount) {
+  public boolean withdraw(UUID uuid, Currency currency, BigDecimal amount) {
     return removeBalance(uuid, currency, amount);
   }
 
@@ -108,7 +111,7 @@ public abstract class DatabaseClient {
    *
    * @return The balance, or null if not found
    */
-  public abstract @Nullable BigDecimal getBalance(UUID uuid, String currency);
+  public abstract @Nullable BigDecimal getBalance(UUID uuid, Currency currency);
 
   /**
    * Set the balance of an account
@@ -119,7 +122,7 @@ public abstract class DatabaseClient {
    *
    * @return The new balance, or null if not found
    */
-  public abstract BigDecimal setBalance(UUID uuid, String currency, BigDecimal amount);
+  public abstract BigDecimal setBalance(UUID uuid, Currency currency, BigDecimal amount);
 
   /**
    * Check if an account has enough balance
@@ -130,17 +133,28 @@ public abstract class DatabaseClient {
    *
    * @return true if the account has enough balance, false otherwise
    */
-  public abstract boolean hasEnoughBalance(UUID uuid, String currency, BigDecimal amount);
+  public abstract boolean hasEnoughBalance(UUID uuid, Currency currency, BigDecimal amount);
 
   /**
    * Get the top balances for a currency
    *
-   * @param currency The currency to get
-   * @param page     The page number (starting from 1)
+   * @param currency       The currency to get
+   * @param page           The page number (starting from 1)
+   * @param playersPerPage
    *
    * @return A list of accounts with the top balances
    */
-  public abstract List<Account> getTopBalances(String currency, int page);
+  public abstract List<Account> getTopBalances(Currency currency, int page, int playersPerPage);
 
-  public abstract void flushCache();
+  public void flushCache() {
+    DatabaseFactory.CACHE_ACCOUNTS.asMap().forEach((uuid, account) -> UltraEconomyApi.saveAccountSync(account));
+  }
+
+  public boolean existPlayerWithName(String target) {
+    return existPlayerWithUUID(CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerUUIDWithName(target));
+  }
+
+  public abstract boolean existPlayerWithUUID(UUID uuid);
+
+  public abstract void saveOrUpdateAccountSync(Account account);
 }

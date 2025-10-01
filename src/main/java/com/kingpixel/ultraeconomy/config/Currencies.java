@@ -2,9 +2,9 @@ package com.kingpixel.ultraeconomy.config;
 
 import com.kingpixel.cobbleutils.util.Utils;
 import com.kingpixel.ultraeconomy.UltraEconomy;
+import com.kingpixel.ultraeconomy.exceptions.UnknownCurrencyException;
 import com.kingpixel.ultraeconomy.models.Currency;
 
-import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -13,7 +13,7 @@ import java.util.Map;
  */
 public class Currencies {
   private static String PATH = UltraEconomy.PATH + "/currencys/";
-  public static final Map<String, Currency> CURRENCIES = new HashMap<>();
+  private static final Map<String, Currency> CURRENCIES = new HashMap<>();
   public static String[] CURRENCY_IDS = new String[0];
   public static Currency DEFAULT_CURRENCY;
 
@@ -39,11 +39,25 @@ public class Currencies {
           );
           currency.setId(file.getName().replace(".json", ""));
           CURRENCIES.put(currency.getId(), currency);
+          writeCurrency(currency);
         } catch (Exception e) {
           e.printStackTrace();
         }
       }
     }
+
+    Map<String, Currency> aliases = new HashMap<>();
+    for (Currency currency : CURRENCIES.values()) {
+      if (currency.getCurrencyIds() != null) {
+        for (String alias : currency.getCurrencyIds()) {
+          aliases.put(alias, currency);
+        }
+      }
+    }
+
+    CURRENCIES.putAll(aliases);
+
+
     CURRENCIES.forEach((k, v) -> {
       v.init();
       if (v.isPrimary()) {
@@ -53,12 +67,25 @@ public class Currencies {
     CURRENCY_IDS = CURRENCIES.keySet().toArray(new String[0]);
   }
 
+  public static Map<String, Currency> getCurrencies() {
+    return CURRENCIES;
+  }
+
   private static void writeCurrency(Currency currency) {
     String data = Utils.newGson().toJson(currency);
     Utils.writeFileAsync(PATH, currency.getId() + ".json", data);
   }
 
-  public static @Nullable Currency getCurrency(String currency) {
-    return CURRENCIES.get(currency);
+  public static Currency getCurrency(String currency) throws UnknownCurrencyException {
+    var curr = CURRENCIES.get(currency);
+    if (curr == null && UltraEconomy.config.isUseCurrencyDefaultWhenNotFound()) {
+      curr = DEFAULT_CURRENCY;
+    }
+    if (curr == null) {
+      throw new UnknownCurrencyException(currency);
+    }
+    return curr;
   }
+
+
 }

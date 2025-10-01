@@ -2,6 +2,7 @@ package com.kingpixel.ultraeconomy.models;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.util.AdventureTranslator;
 import com.kingpixel.ultraeconomy.UltraEconomy;
 import lombok.Data;
@@ -11,11 +12,15 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
- * @author Carlos
- * Optimized Currency model with short amount support
+ * Optimized Currency model with support for short amounts and cached formatting.
+ * Improved for multi-threaded environments.
+ * <p>
+ * Author: Carlos
  */
 @Data
 public class Currency {
@@ -23,24 +28,40 @@ public class Currency {
   private String id;
   private boolean primary;
   private boolean transferable;
-  private byte decimals;
   private BigDecimal defaultBalance;
+  private byte decimals;
   private String symbol;
   private String format;
   private String singular;
   private String plural;
   private String[] SUFFIXES;
+  private String[] currencyIds;
 
+  // Thread-safe caches for formatted strings and Text objects
   transient
-  private Cache<BigDecimal, String> formatCache;
+  private Map<Locale, Cache<BigDecimal, String>> formatCache;
   transient
-  private Cache<BigDecimal, Text> formatTextCache;
+  private Map<Locale, Cache<BigDecimal, Text>> formatTextCache;
+  transient
+  private Map<Locale, Cache<BigDecimal, Text>> formatSimpleTextCache;
+  transient
+  private Map<Locale, Cache<BigDecimal, Text>> formatAmountTextCache;
+
+  // Symbol is invariant -> cache once
+  transient
+  private Text symbolText;
+
+  public Text getSymbolText() {
+    if (symbolText == null) symbolText = AdventureTranslator.toNative(this.symbol);
+    return symbolText;
+  }
 
   public Currency() {
-    this.format = "<symbol>&6<short_amount> <name>";
+    this.format = "<symbol>&6<amount> <name>";
     this.singular = "Dollar";
     this.plural = "Dollars";
     this.SUFFIXES = new String[]{"", "K", "M", "B", "T"};
+    this.currencyIds = new String[]{};
   }
 
   public Currency(boolean primary, byte decimals, String symbol) {
@@ -52,37 +73,46 @@ public class Currency {
     this.symbol = symbol;
   }
 
+  /**
+   * Initialize all caches for currency formatting.
+   * Should be called once after constructing the currency object.
+   */
   public void init() {
-    formatCache = Caffeine.newBuilder()
+    formatCache = new ConcurrentHashMap<>();
+    formatTextCache = new ConcurrentHashMap<>();
+    formatSimpleTextCache = new ConcurrentHashMap<>();
+    formatAmountTextCache = new ConcurrentHashMap<>();
+
+  }
+
+  // ================== FORMAT STRING CACHES ==================
+
+  private Cache<BigDecimal, String> getFormatCacheForLocale(Locale locale) {
+    return formatCache.computeIfAbsent(locale, loc -> Caffeine.newBuilder()
       .expireAfterAccess(1, TimeUnit.MINUTES)
-      .maximumSize(1_000)
-      .build();
-    formatTextCache = Caffeine.newBuilder()
-      .expireAfterAccess(1, TimeUnit.MINUTES)
-      .maximumSize(1_000)
-      .build();
+      .maximumSize(5_000)
+      .removalListener((key, value, cause) -> {
+        if (UltraEconomy.config.isDebug()) {
+          CobbleUtils.LOGGER.info("Currency format cache removed key: " + key + ", cause: " + cause);
+        }
+      })
+      .build());
   }
 
   public String format(BigDecimal value) {
-    return formatCache.get(value, v -> replace(v, Locale.US));
+    return getFormatCacheForLocale(Locale.US).get(value, v -> replace(v, Locale.US));
   }
 
   public String format(BigDecimal value, Locale locale) {
-    return formatCache.get(value, v -> replace(v, locale));
+    return getFormatCacheForLocale(locale).get(value, v -> replace(v, locale));
   }
 
-
+  /**
+   * Replace placeholders in the format string with actual values.
+   * Supported placeholders: <symbol>, <amount>, <short_amount>, <name>
+   */
   private String replace(BigDecimal value, Locale locale) {
-    String amountStr = value.setScale(decimals, RoundingMode.DOWN)
-      .stripTrailingZeros()
-      .toPlainString();
-
-    String nameStr = value.compareTo(BigDecimal.ONE) == 0 ? singular : plural;
-
-    StringBuilder sb = new StringBuilder(
-      format.length() + symbol.length() + amountStr.length() + nameStr.length()
-    );
-
+    StringBuilder sb = new StringBuilder();
     for (int i = 0; i < format.length(); i++) {
       char c = format.charAt(i);
 
@@ -93,87 +123,130 @@ public class Currency {
           continue;
         }
         if (format.startsWith("<amount>", i)) {
-          sb.append(amountStr);
+          sb.append(formatSimpleAmount(value, locale));
           i += "<amount>".length() - 1;
           continue;
         }
         if (format.startsWith("<short_amount>", i)) {
-          sb.append(formatAmount(value));
+          sb.append(formatAmount(value, locale));
           i += "<short_amount>".length() - 1;
           continue;
         }
         if (format.startsWith("<name>", i)) {
-          sb.append(nameStr);
+          sb.append(value.compareTo(BigDecimal.ONE) == 0 ? singular : plural);
           i += "<name>".length() - 1;
           continue;
         }
-
       }
       sb.append(c);
     }
+    String result = sb.toString();
+    if (UltraEconomy.config.isDebug()) {
+      CobbleUtils.LOGGER.info("Formatted currency: " + result);
+    }
+    return result;
+  }
 
-    return sb.toString();
+  // ================== STRING FORMAT HELPERS ==================
+
+  /**
+   * Format a number with grouping separators and configured decimals.
+   */
+  public String formatSimpleAmount(BigDecimal value, Locale locale) {
+    NumberFormat nf = NumberFormat.getNumberInstance(locale);
+    nf.setMaximumFractionDigits(decimals);
+    nf.setMinimumFractionDigits(0);
+    nf.setGroupingUsed(true);
+
+    return nf.format(value);
   }
 
   /**
    * Format amount with suffixes (K, M, B, T, etc.)
-   *
-   * @param value the amount to format
-   *
-   * @return the formatted amount with suffix
    */
-  private String formatAmount(BigDecimal value) {
+  public String formatAmount(BigDecimal value) {
     return formatAmount(value, Locale.US);
   }
 
   /**
-   * Format amount with suffixes (K, M, B, T, etc.) using a specific locale
-   *
-   * @param value  the amount to format
-   * @param locale the locale to use for formatting
-   *
-   * @return the formatted amount with suffix
+   * Format amount with suffixes (K, M, B, T, etc.) for a given locale.
    */
-  private String formatAmount(BigDecimal value, Locale locale) {
+  public String formatAmount(BigDecimal value, Locale locale) {
+    if (value == null) return "0";
     BigDecimal thousand = BigDecimal.valueOf(1000);
     int suffixIndex = 0;
 
-    // Reducir el número hasta que sea menor que 1000 o lleguemos al último sufijo
+    // Reduce the number until it's below 1000 or suffixes run out
     while (value.compareTo(thousand) >= 0 && suffixIndex < SUFFIXES.length - 1) {
-      value = value.divide(thousand, 2, RoundingMode.DOWN); // división con redondeo inmediato
+      value = value.divide(thousand, 2, RoundingMode.DOWN);
       suffixIndex++;
     }
 
-    // Usar NumberFormat para formatear decimales de forma segura y con separador de miles
     NumberFormat nf = NumberFormat.getNumberInstance(locale);
     nf.setMaximumFractionDigits(Math.max(decimals, UltraEconomy.config.getAdjustmentShortName()));
     nf.setMinimumFractionDigits(0);
-    nf.setGroupingUsed(false); // sin separadores de miles, ya que es un valor reducido
+    nf.setGroupingUsed(false);
 
     return nf.format(value) + SUFFIXES[suffixIndex];
   }
 
+  // ================== FORMAT TEXT CACHES ==================
 
-  /**
-   * Format the value and return it as a Text component
-   *
-   * @param value the value to format
-   *
-   * @return the formatted value as Text
-   */
   public Text formatText(BigDecimal value) {
-    return formatTextCache.get(value, v -> AdventureTranslator.toNative(format(v)));
+    return formatText(value, Locale.US);
   }
 
-  /**
-   * Format the value with a specific locale and return it as a Text component
-   *
-   * @param value  the value to format
-   * @param locale the locale to use for formatting
-   *
-   * @return the formatted value as Text
-   */
   public Text formatText(BigDecimal value, Locale locale) {
-    return formatTextCache.get(value, v -> AdventureTranslator.toNative(format(v, locale)));
+    return getFormatTextCacheForLocale(locale).get(value, v -> AdventureTranslator.toNative(format(v, locale)));
+  }
+
+  private Cache<BigDecimal, Text> getFormatTextCacheForLocale(Locale locale) {
+    return formatTextCache.computeIfAbsent(locale, loc -> Caffeine.newBuilder()
+      .expireAfterAccess(1, TimeUnit.MINUTES)
+      .maximumSize(5_000)
+      .removalListener((key, value, cause) -> {
+        if (UltraEconomy.config.isDebug()) {
+          CobbleUtils.LOGGER.info("Currency formatText cache removed key: " + key + ", cause: " + cause);
+        }
+      })
+      .build());
+  }
+
+  // ================== SIMPLE AMOUNT TEXT ==================
+
+  public Text formatSimpleAmountText(BigDecimal balance, Locale locale) {
+    return getFormatSimpleTextCacheForLocale(locale)
+      .get(balance, v -> AdventureTranslator.toNative(formatSimpleAmount(v, locale)));
+  }
+
+  private Cache<BigDecimal, Text> getFormatSimpleTextCacheForLocale(Locale locale) {
+    return formatSimpleTextCache.computeIfAbsent(locale, loc -> Caffeine.newBuilder()
+      .expireAfterAccess(1, TimeUnit.MINUTES)
+      .maximumSize(5_000)
+      .removalListener((key, value, cause) -> {
+        if (UltraEconomy.config.isDebug()) {
+          CobbleUtils.LOGGER.info("Currency simpleText cache removed key: " + key + ", cause: " + cause);
+        }
+      })
+      .build());
+  }
+
+  // ================== SHORT AMOUNT TEXT ==================
+
+  public Text formatAmountText(BigDecimal balance, Locale locale) {
+    return getFormatAmountTextCacheForLocale(locale)
+      .get(balance, v -> AdventureTranslator.toNative(formatAmount(v, locale)));
+  }
+
+  private Cache<BigDecimal, Text> getFormatAmountTextCacheForLocale(Locale locale) {
+    return formatAmountTextCache.computeIfAbsent(locale, loc -> Caffeine.newBuilder()
+      .expireAfterAccess(1, TimeUnit.MINUTES)
+      .maximumSize(5_000)
+      .removalListener((key, value, cause) -> {
+        if (UltraEconomy.config.isDebug()) {
+          CobbleUtils.LOGGER.info("Currency amountText cache removed key: " + key + ", cause: " + cause);
+        }
+      })
+      .build());
   }
 }

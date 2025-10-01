@@ -8,6 +8,7 @@
     "impactor.ImpactorAccountMixin",
     "impactor.ImpactorCurrencyMixin"
   ],
+  "plugin": "com.kingpixel.ultraeconomy.UltraEconomyMixinPlugin",
   "injectors": {
     "defaultRequire": 1
   },

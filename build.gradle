@@ -63,13 +63,21 @@ dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
     modImplementation(files(fileTree(dir: 'libs', include: '*.jar')))
     implementation("com.github.ben-manes.caffeine:caffeine:3.2.2")
 
-    //modImplementation("net.impactdev.impactor.api:economy:${property("impactor_version")}")
+    modImplementation("ca.landonjw.gooeylibs:fabric-api-repack:${property("gooeylibs_version")}")
+
+
+    // Economy APIs
+    modImplementation("net.impactdev.impactor.api:economy:${property("impactor_version")}")
     modImplementation("net.impactdev.impactor:common:${property("impactor_version")}")
+
+    // Placeholder API
+    modImplementation("eu.pb4:placeholder-api:${property("placeholder_api_version_fabricandforge")}")
+
     // Database
     modImplementation("com.zaxxer:HikariCP:5.0.1")
     implementation("org.mongodb:mongodb-driver-sync:${property("mongodb_version")}")

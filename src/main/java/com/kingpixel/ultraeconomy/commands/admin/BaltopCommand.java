@@ -3,6 +3,7 @@ package com.kingpixel.ultraeconomy.commands.admin;
 import com.kingpixel.cobbleutils.util.AdventureTranslator;
 import com.kingpixel.cobbleutils.util.PlayerUtils;
 import com.kingpixel.ultraeconomy.UltraEconomy;
+import com.kingpixel.ultraeconomy.commands.Register;
 import com.kingpixel.ultraeconomy.config.Currencies;
 import com.kingpixel.ultraeconomy.database.DatabaseFactory;
 import com.kingpixel.ultraeconomy.models.Account;
@@ -11,8 +12,10 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.text.Text;
 
 import java.util.List;
 import java.util.StringJoiner;
@@ -25,12 +28,41 @@ public class BaltopCommand {
   public static void put(CommandDispatcher<ServerCommandSource> dispatcher, LiteralArgumentBuilder<ServerCommandSource> base) {
     base.then(get());
     dispatcher.register(get());
+    base.then(getBalTopMenu());
+    dispatcher.register(getBalTopMenu());
+  }
+
+  private static LiteralArgumentBuilder<ServerCommandSource> getBalTopMenu() {
+    return CommandManager.literal("baltopmenu")
+      .then(
+        CommandManager.argument("currency", StringArgumentType.string())
+          .suggests((context, builder) -> {
+            var size = Currencies.CURRENCY_IDS.length;
+            for (int i = 0; i < size; i++) {
+              builder.suggest(Currencies.CURRENCY_IDS[i]);
+            }
+            return builder.buildFuture();
+          })
+          .executes(context -> {
+            String currencyId = StringArgumentType.getString(context, "currency");
+            Currency currency = Currencies.getCurrency(currencyId);
+            if (currency == null) {
+              context.getSource().sendMessage(
+                Text.literal("§cCurrency not found: " + currencyId)
+              );
+              return 0;
+            }
+            UltraEconomy.lang.getBalTopMenu().open(context.getSource().getPlayer(), 1,
+              currency);
+            return 1;
+          })
+      );
   }
 
   private static LiteralArgumentBuilder<ServerCommandSource> get() {
     return CommandManager.literal("baltop")
       .executes(context -> {
-        run(context.getSource(), Currencies.DEFAULT_CURRENCY.getId(), 1);
+        run(context, Currencies.DEFAULT_CURRENCY.getId(), 1);
         return 1;
       }).then(
         CommandManager.argument("currency", StringArgumentType.string())
@@ -42,12 +74,12 @@ public class BaltopCommand {
             return builder.buildFuture();
           })
           .executes(context -> {
-            run(context.getSource(), StringArgumentType.getString(context, "currency"), 1);
+            run(context, StringArgumentType.getString(context, "currency"), 1);
             return 1;
           }).then(
-            CommandManager.argument("page", IntegerArgumentType.integer(1, 100))
+            CommandManager.argument("page", IntegerArgumentType.integer(1))
               .executes(context -> {
-                run(context.getSource(), StringArgumentType.getString(context,
+                run(context, StringArgumentType.getString(context,
                     "currency"),
                   IntegerArgumentType.getInteger(context, "page"));
                 return 1;
@@ -56,12 +88,18 @@ public class BaltopCommand {
       );
   }
 
-  public static void run(ServerCommandSource source, String currencyId, int page) {
+  public static void run(CommandContext<ServerCommandSource> context, String currencyId, int page) {
+    var source = context.getSource();
     if (PlayerUtils.isCooldownMenu(source.getPlayer(), "ultraeconomy.baltop",
       UltraEconomy.config.getBalTopCooldown())) return;
     CompletableFuture.runAsync(() -> {
         Currency currency = Currencies.getCurrency(currencyId);
-        List<Account> topAccounts = DatabaseFactory.INSTANCE.getTopBalances(currency.getId(), page);
+        if (currency == null) {
+          source.sendMessage(Text.literal("§c Currency not found: " + currencyId));
+          return;
+        }
+        List<Account> topAccounts = DatabaseFactory.INSTANCE.getTopBalances(currency, page,
+          UltraEconomy.config.getLimitTopPlayers());
 
         StringJoiner joiner = new StringJoiner("\n");
         joiner.add(UltraEconomy.lang.getMessageBalTopHeader()
@@ -72,12 +110,14 @@ public class BaltopCommand {
         } else {
           int limit = UltraEconomy.config.getLimitTopPlayers();
           int rank = (page - 1) * limit + 1;
-
-          for (Account account : topAccounts) {
+          int size = topAccounts.size();
+          if (size > limit) size = limit;
+          for (int i = 0; i < size; i++) {
+            Account account = topAccounts.get(i);
             String line = UltraEconomy.lang.getMessageBalTopLine()
               .replace("%rank%", Integer.toString(rank))
               .replace("%player%", account.getPlayerName())
-              .replace("%balance%", currency.format(account.getBalance(currency.getId())));
+              .replace("%balance%", currency.format(account.getBalance(currency)));
             joiner.add(line);
             rank++;
           }
@@ -95,10 +135,7 @@ public class BaltopCommand {
 
         source.sendFeedback(() -> AdventureTranslator.toNative(output), false);
       }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR)
-      .exceptionally(e -> {
-        e.printStackTrace();
-        return null;
-      });
+      .exceptionally(e -> Register.sendFeedBack(e, context));
   }
 
 }

@@ -24,7 +24,7 @@ public abstract class ImpactorCurrencyMixin {
 
   @Unique private Map<ImpactorCurrency, String> currencyIdCache = new HashMap<>();
 
-  @Inject(method = "format", at = @At("RETURN"), cancellable = true, remap = false)
+  @Inject(method = "format", at = @At("HEAD"), cancellable = true, remap = false)
   private void format(BigDecimal amount, boolean condensed, Locale locale, CallbackInfoReturnable<Component> cir) {
     if (UltraEconomy.migrationDone) {
       ImpactorCurrency self = (ImpactorCurrency) (Object) this;
@@ -43,7 +43,7 @@ public abstract class ImpactorCurrencyMixin {
     return currencyIdCache.computeIfAbsent(currency, c -> c.key().value().replace("impactor:", ""));
   }
 
-  @Inject(method = "symbol", at = @At("RETURN"), cancellable = true, remap = false)
+  @Inject(method = "symbol", at = @At("HEAD"), cancellable = true, remap = false)
   private void symbol(CallbackInfoReturnable<Component> cir) {
     if (UltraEconomy.migrationDone) {
       ImpactorCurrency self = (ImpactorCurrency) (Object) this;

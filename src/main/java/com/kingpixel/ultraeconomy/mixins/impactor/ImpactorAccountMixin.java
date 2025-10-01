@@ -85,7 +85,7 @@ public abstract class ImpactorAccountMixin {
     }
   }
 
-  @Inject(method = "save", at = @At("HEAD"), cancellable = true, remap = false)
+  @Inject(method = "save", at = @At("HEAD"), remap = false)
   private void save(CallbackInfo ci) {
     if (UltraEconomy.migrationDone) {
       // Do nothing, as UltraEconomyApi methods already save the account
@@ -97,7 +97,11 @@ public abstract class ImpactorAccountMixin {
   private void balance(CallbackInfoReturnable<BigDecimal> cir) {
     if (UltraEconomy.migrationDone) {
       ImpactorAccount self = (ImpactorAccount) (Object) this;
-      BigDecimal balance = UltraEconomyApi.getBalance(self.owner(), getCurrencyId(self.currency()));
+      var account = UltraEconomyApi.getAccount(self.owner());
+      BigDecimal balance = BigDecimal.ZERO;
+      if (account != null) {
+        balance = UltraEconomyApi.getBalance(self.owner(), getCurrencyId(self.currency()));
+      }
       cir.setReturnValue(balance);
     }
   }
