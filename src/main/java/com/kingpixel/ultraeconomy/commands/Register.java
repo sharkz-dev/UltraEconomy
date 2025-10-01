@@ -8,7 +8,6 @@ import com.kingpixel.ultraeconomy.exceptions.UnknownCurrencyException;
 import com.kingpixel.ultraeconomy.models.Currency;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
-import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -21,8 +20,7 @@ import java.util.UUID;
  * @author Carlos Varas Alonso - 23/09/2025 21:29
  */
 public class Register {
-  public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess,
-                              CommandManager.RegistrationEnvironment environment) {
+  public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
     for (String command : UltraEconomy.config.getCommands()) {
       var base = CommandManager.literal(command);
       base.executes(context -> {
@@ -34,10 +32,10 @@ public class Register {
 
       PayCommand.put(dispatcher, base);
       BalanceCommand.put(dispatcher, base);
-      ReloadCommand.put(dispatcher, base);
-      DepositCommand.put(dispatcher, base);
-      WithdrawCommand.put(dispatcher, base);
-      SetCommand.put(dispatcher, base);
+      ReloadCommand.put(base);
+      DepositCommand.put(base);
+      WithdrawCommand.put(base);
+      SetCommand.put(base);
       BaltopCommand.put(dispatcher, base);
 
       dispatcher.register(base);

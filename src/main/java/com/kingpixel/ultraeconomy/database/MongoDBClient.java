@@ -12,6 +12,7 @@ import com.mongodb.client.*;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.ReplaceOptions;
 import com.mongodb.client.model.Updates;
+import net.minecraft.entity.Entity;
 import org.bson.Document;
 import org.bson.types.Decimal128;
 
@@ -24,6 +25,16 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class MongoDBClient extends DatabaseClient {
+  private static final String TRANSACTIONS_COLLECTION = "transactions";
+  private static final String ACCOUNTS_COLLECTION = "accounts";
+  private static final String FIELD_UUID = "uuid";
+  private static final String FIELD_PLAYER_NAME = "player_name";
+  private static final String FIELD_BALANCES = "balances";
+  private static final String FIELD_ACCOUNT_UUID = "account_uuid";
+  private static final String FIELD_CURRENCY_ID = "currency_id";
+  private static final String FIELD_AMOUNT = "amount";
+  private static final String FIELD_TYPE = "type";
+  private static final String FIELD_PROCESSED = "processed";
 
   private MongoClient mongoClient;
   private MongoCollection<Document> accountsCollection;
@@ -44,8 +55,8 @@ public class MongoDBClient extends DatabaseClient {
       );
       database = mongoClient.getDatabase(config.getDatabase());
 
-      accountsCollection = database.getCollection("accounts");
-      transactionsCollection = database.getCollection("transactions");
+      accountsCollection = database.getCollection(ACCOUNTS_COLLECTION);
+      transactionsCollection = database.getCollection(TRANSACTIONS_COLLECTION);
 
       // asegurar índices
       ensureIndexes();
@@ -63,7 +74,6 @@ public class MongoDBClient extends DatabaseClient {
     } catch (Exception e) {
       CobbleUtils.LOGGER.error("❌ Could not connect to MongoDB: " + e.getMessage());
       mongoClient = null;
-      database = null;
     }
   }
 
@@ -75,7 +85,7 @@ public class MongoDBClient extends DatabaseClient {
       }
 
       if (!existingIndexes.contains("uuid_1")) {
-        accountsCollection.createIndex(new Document("uuid", 1));
+        accountsCollection.createIndex(new Document(FIELD_UUID, 1));
       }
 
       existingIndexes.clear();
@@ -84,13 +94,13 @@ public class MongoDBClient extends DatabaseClient {
       }
 
       if (!existingIndexes.contains("account_uuid_1")) {
-        transactionsCollection.createIndex(new Document("account_uuid", 1));
+        transactionsCollection.createIndex(new Document(FIELD_ACCOUNT_UUID, 1));
       }
       if (!existingIndexes.contains("currency_id_1")) {
-        transactionsCollection.createIndex(new Document("currency_id", 1));
+        transactionsCollection.createIndex(new Document(FIELD_CURRENCY_ID, 1));
       }
       if (!existingIndexes.contains("processed_1")) {
-        transactionsCollection.createIndex(new Document("processed", 1));
+        transactionsCollection.createIndex(new Document(FIELD_PROCESSED, 1));
       }
 
       CobbleUtils.LOGGER.info("Indexes verified/created successfully.");
@@ -127,7 +137,7 @@ public class MongoDBClient extends DatabaseClient {
     Account cached = DatabaseFactory.CACHE_ACCOUNTS.getIfPresent(uuid);
     if (cached != null) return cached;
 
-    Document doc = accountsCollection.find(Filters.eq("uuid", uuid.toString())).first();
+    Document doc = accountsCollection.find(Filters.eq(FIELD_UUID, uuid.toString())).first();
     Account account;
     if (doc != null) {
       account = documentToAccount(doc);
@@ -155,21 +165,20 @@ public class MongoDBClient extends DatabaseClient {
       });
   }
 
-  @Override public void saveOrUpdateAccountSync(Account account) {
+  @Override
+  public void saveOrUpdateAccountSync(Account account) {
     saveAccount(account);
   }
 
   private void saveAccount(Account account) {
     Document balances = new Document();
-    account.getBalances().forEach((k, v) -> {
-      balances.append(k, new Decimal128(v)); // ✅ siempre Decimal128
-    });
-    Document doc = new Document("uuid", account.getPlayerUUID().toString())
-      .append("player_name", account.getPlayerName())
-      .append("balances", balances);
+    account.getBalances().forEach((k, v) -> balances.append(k, new Decimal128(v)));
+    Document doc = new Document(FIELD_UUID, account.getPlayerUUID().toString())
+      .append(FIELD_PLAYER_NAME, account.getPlayerName())
+      .append(FIELD_BALANCES, balances);
 
     accountsCollection.replaceOne(
-      Filters.eq("uuid", account.getPlayerUUID().toString()),
+      Filters.eq(FIELD_UUID, account.getPlayerUUID().toString()),
       doc,
       new ReplaceOptions().upsert(true)
     );
@@ -177,11 +186,11 @@ public class MongoDBClient extends DatabaseClient {
 
   private void addTransaction(UUID uuid, Currency currency, BigDecimal amount, TransactionType type, boolean processed) {
     CompletableFuture.runAsync(() -> {
-        Document tx = new Document("account_uuid", uuid.toString())
-          .append("currency_id", currency.getId())
-          .append("amount", new Decimal128(amount)) // ✅ siempre Decimal128
-          .append("type", type.name())
-          .append("processed", processed)
+        Document tx = new Document(FIELD_ACCOUNT_UUID, uuid.toString())
+          .append(FIELD_ACCOUNT_UUID, currency.getId())
+          .append(FIELD_AMOUNT, new Decimal128(amount)) // ✅ siempre Decimal128
+          .append(FIELD_TYPE, type.name())
+          .append(FIELD_PROCESSED, processed)
           .append("timestamp", Date.from(Instant.now()));
         transactionsCollection.insertOne(tx);
       }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR)
@@ -196,23 +205,22 @@ public class MongoDBClient extends DatabaseClient {
 
     var players = UltraEconomy.server.getPlayerManager().getPlayerList();
     List<String> uuids = players.stream()
-      .map(p -> p.getUuidAsString())
+      .map(Entity::getUuidAsString)
       .toList();
 
     if (uuids.isEmpty()) return;
 
     try {
       Document tx;
-      // Continuar procesando mientras existan transacciones no procesadas
       while ((tx = transactionsCollection.findOneAndUpdate(
         Filters.and(
-          Filters.eq("processed", false),
-          Filters.in("account_uuid", uuids)
+          Filters.eq(FIELD_PROCESSED, false),
+          Filters.in(FIELD_ACCOUNT_UUID, uuids)
         ),
-        Updates.set("processed", true)
+        Updates.set(FIELD_PROCESSED, true)
       )) != null) {
 
-        UUID uuid = UUID.fromString(tx.getString("account_uuid"));
+        UUID uuid = UUID.fromString(tx.getString(FIELD_ACCOUNT_UUID));
         Account account = getCachedAccount(uuid);
         if (account == null) {
           if (UltraEconomy.config.isDebug()) {
@@ -221,21 +229,21 @@ public class MongoDBClient extends DatabaseClient {
           continue;
         }
 
-        String currencyId = tx.getString("currency_id");
+        String currencyId = tx.getString(FIELD_CURRENCY_ID);
         Currency currency = Currencies.getCurrency(currencyId);
-        if (currency == null) {
-          CobbleUtils.LOGGER.error("Invalid currency in transaction: " + tx.toJson());
-          continue;
-        }
         BigDecimal amount;
-        Object rawAmount = tx.get("amount");
-        if (rawAmount instanceof Decimal128 dec) {
-          amount = dec.bigDecimalValue();
-        } else if (rawAmount instanceof String str) {
-          amount = new BigDecimal(str);
-        } else {
-          CobbleUtils.LOGGER.error("Unexpected amount type: " + rawAmount);
-          continue;
+        Object rawAmount = tx.get(FIELD_AMOUNT);
+        switch (rawAmount) {
+          case String s -> amount = new BigDecimal(s);
+          case Decimal128 d -> amount = d.bigDecimalValue();
+          case Integer i -> amount = BigDecimal.valueOf(i);
+          case Long l -> amount = BigDecimal.valueOf(l);
+          case Double d -> amount = BigDecimal.valueOf(d);
+          case Float f -> amount = BigDecimal.valueOf(f);
+          default -> {
+            CobbleUtils.LOGGER.error("Unknown amount type in transaction: " + tx.toJson());
+            continue;
+          }
         }
 
         TransactionType type;
@@ -251,6 +259,10 @@ public class MongoDBClient extends DatabaseClient {
           case DEPOSIT -> account.addBalance(currency, amount);
           case WITHDRAW -> account.removeBalance(currency, amount);
           case SET -> account.setBalance(currency, amount);
+          default -> {
+            CobbleUtils.LOGGER.error("Unknown transaction type: " + type);
+            continue;
+          }
         }
 
         saveOrUpdateAccount(account);
@@ -338,18 +350,19 @@ public class MongoDBClient extends DatabaseClient {
     return topAccounts;
   }
 
-  @Override public boolean existPlayerWithUUID(UUID uuid) {
-    Document doc = accountsCollection.find(Filters.eq("uuid", uuid.toString())).first();
+  @Override
+  public boolean existPlayerWithUUID(UUID uuid) {
+    Document doc = accountsCollection.find(Filters.eq(FIELD_UUID, uuid.toString())).first();
     return doc != null;
   }
 
 
   public Account documentToAccount(Document doc) {
-    UUID uuid = UUID.fromString(doc.getString("uuid"));
-    String playerName = doc.getString("player_name");
+    UUID uuid = UUID.fromString(doc.getString(FIELD_UUID));
+    String playerName = doc.getString(FIELD_PLAYER_NAME);
 
     Map<String, BigDecimal> balances = new HashMap<>();
-    Document balanceDoc = doc.get("balances", Document.class);
+    Document balanceDoc = doc.get(FIELD_BALANCES, Document.class);
 
     if (balanceDoc != null) {
       for (String key : balanceDoc.keySet()) {

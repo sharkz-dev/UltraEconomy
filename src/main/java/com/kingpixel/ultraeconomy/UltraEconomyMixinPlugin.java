@@ -13,40 +13,42 @@ import java.util.Set;
  * @author Carlos Varas Alonso - 28/09/2025 4:37
  */
 public class UltraEconomyMixinPlugin implements IMixinConfigPlugin {
-  @Override public void onLoad(String mixinPackage) {
-
+  @Override
+  public void onLoad(String mixinPackage) {
+    // This is not needed for now
   }
 
-  @Override public String getRefMapperConfig() {
+  @Override
+  public String getRefMapperConfig() {
     return "";
   }
 
-  @Override public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
+  @Override
+  public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
     if (UserCacheMixin.class.getName().equals(targetClassName)) {
       return true;
     }
-    if (FabricLoader.getInstance().isModLoaded("impactor")) {
-      if (mixinClassName.contains("Impactor")) return true;
-    }
-    return false;
+    return FabricLoader.getInstance().isModLoaded("impactor") && mixinClassName.contains("Impactor");
+  }
+
+  @Override
+  public void acceptTargets(Set<String> myTargets, Set<String> otherTargets) {
+    // This is not needed for now
   }
 
 
-  @Override public void acceptTargets(Set<String> myTargets, Set<String> otherTargets) {
-
-  }
-
-  @Override public List<String> getMixins() {
+  @Override
+  public List<String> getMixins() {
     return List.of();
   }
 
   @Override
   public void preApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {
-
+    // This is not needed for now
   }
 
   @Override
   public void postApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {
-
+    // This is not needed for now
   }
 }

@@ -95,18 +95,20 @@ public class Lang {
 
   public void init() {
     String filename = UltraEconomy.config.getLang() + ".json";
-    CompletableFuture<Boolean> futureRead = Utils.readFileAsync(PATH, filename, (el) -> {
+    CompletableFuture<Boolean> futureRead = Utils.readFileAsync(PATH, filename, call -> {
       Gson gson = Utils.newGson();
-      UltraEconomy.lang = gson.fromJson(el, Lang.class);
+      UltraEconomy.lang = gson.fromJson(call, Lang.class);
       String data = gson.toJson(UltraEconomy.lang);
       Utils.writeFileAsync(PATH, filename, data);
     });
-    if (!futureRead.join()) {
+    if (Boolean.FALSE.equals(futureRead.join())) {
       CobbleUtils.LOGGER.info("Creating new config file at " + PATH + "/" + filename);
       Gson gson = Utils.newGson();
       UltraEconomy.lang = this;
       String data = gson.toJson(UltraEconomy.lang);
       Utils.writeFileAsync(PATH, filename, data);
+    } else {
+      CobbleUtils.LOGGER.info("Loaded language file: " + filename);
     }
   }
 }

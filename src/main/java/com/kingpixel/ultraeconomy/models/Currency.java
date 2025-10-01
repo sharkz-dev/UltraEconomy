@@ -2,11 +2,11 @@ package com.kingpixel.ultraeconomy.models;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.util.AdventureTranslator;
 import com.kingpixel.ultraeconomy.UltraEconomy;
 import lombok.Data;
 import net.minecraft.text.Text;
+import org.jetbrains.annotations.NotNull;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
  * <p>
  * Author: Carlos
  */
+
 @Data
 public class Currency {
   transient
@@ -34,18 +35,18 @@ public class Currency {
   private String format;
   private String singular;
   private String plural;
-  private String[] SUFFIXES;
+  private String[] suffixes;
   private String[] currencyIds;
 
   // Thread-safe caches for formatted strings and Text objects
   transient
-  private Map<Locale, Cache<BigDecimal, String>> formatCache;
+  private Map<Locale, Cache<@NotNull BigDecimal, String>> formatCache;
   transient
-  private Map<Locale, Cache<BigDecimal, Text>> formatTextCache;
+  private Map<Locale, Cache<@NotNull BigDecimal, Text>> formatTextCache;
   transient
-  private Map<Locale, Cache<BigDecimal, Text>> formatSimpleTextCache;
+  private Map<Locale, Cache<@NotNull BigDecimal, Text>> formatSimpleTextCache;
   transient
-  private Map<Locale, Cache<BigDecimal, Text>> formatAmountTextCache;
+  private Map<Locale, Cache<@NotNull BigDecimal, Text>> formatAmountTextCache;
 
   // Symbol is invariant -> cache once
   transient
@@ -60,7 +61,7 @@ public class Currency {
     this.format = "<symbol>&6<amount> <name>";
     this.singular = "Dollar";
     this.plural = "Dollars";
-    this.SUFFIXES = new String[]{"", "K", "M", "B", "T"};
+    this.suffixes = new String[]{"", "K", "M", "B", "T"};
     this.currencyIds = new String[]{};
   }
 
@@ -91,11 +92,6 @@ public class Currency {
     return formatCache.computeIfAbsent(locale, loc -> Caffeine.newBuilder()
       .expireAfterAccess(1, TimeUnit.MINUTES)
       .maximumSize(5_000)
-      .removalListener((key, value, cause) -> {
-        if (UltraEconomy.config.isDebug()) {
-          CobbleUtils.LOGGER.info("Currency format cache removed key: " + key + ", cause: " + cause);
-        }
-      })
       .build());
   }
 
@@ -113,7 +109,8 @@ public class Currency {
    */
   private String replace(BigDecimal value, Locale locale) {
     StringBuilder sb = new StringBuilder();
-    for (int i = 0; i < format.length(); i++) {
+    int length = format.length();
+    for (int i = 0; i < length; i++) {
       char c = format.charAt(i);
 
       if (c == '<') {
@@ -140,11 +137,7 @@ public class Currency {
       }
       sb.append(c);
     }
-    String result = sb.toString();
-    if (UltraEconomy.config.isDebug()) {
-      CobbleUtils.LOGGER.info("Formatted currency: " + result);
-    }
-    return result;
+    return sb.toString();
   }
 
   // ================== STRING FORMAT HELPERS ==================
@@ -177,7 +170,7 @@ public class Currency {
     int suffixIndex = 0;
 
     // Reduce the number until it's below 1000 or suffixes run out
-    while (value.compareTo(thousand) >= 0 && suffixIndex < SUFFIXES.length - 1) {
+    while (value.compareTo(thousand) >= 0 && suffixIndex < suffixes.length - 1) {
       value = value.divide(thousand, 2, RoundingMode.DOWN);
       suffixIndex++;
     }
@@ -187,7 +180,7 @@ public class Currency {
     nf.setMinimumFractionDigits(0);
     nf.setGroupingUsed(false);
 
-    return nf.format(value) + SUFFIXES[suffixIndex];
+    return nf.format(value) + suffixes[suffixIndex];
   }
 
   // ================== FORMAT TEXT CACHES ==================
@@ -200,15 +193,10 @@ public class Currency {
     return getFormatTextCacheForLocale(locale).get(value, v -> AdventureTranslator.toNative(format(v, locale)));
   }
 
-  private Cache<BigDecimal, Text> getFormatTextCacheForLocale(Locale locale) {
+  private Cache<@NotNull BigDecimal, Text> getFormatTextCacheForLocale(Locale locale) {
     return formatTextCache.computeIfAbsent(locale, loc -> Caffeine.newBuilder()
       .expireAfterAccess(1, TimeUnit.MINUTES)
       .maximumSize(5_000)
-      .removalListener((key, value, cause) -> {
-        if (UltraEconomy.config.isDebug()) {
-          CobbleUtils.LOGGER.info("Currency formatText cache removed key: " + key + ", cause: " + cause);
-        }
-      })
       .build());
   }
 
@@ -219,15 +207,10 @@ public class Currency {
       .get(balance, v -> AdventureTranslator.toNative(formatSimpleAmount(v, locale)));
   }
 
-  private Cache<BigDecimal, Text> getFormatSimpleTextCacheForLocale(Locale locale) {
+  private Cache<@NotNull BigDecimal, Text> getFormatSimpleTextCacheForLocale(Locale locale) {
     return formatSimpleTextCache.computeIfAbsent(locale, loc -> Caffeine.newBuilder()
       .expireAfterAccess(1, TimeUnit.MINUTES)
       .maximumSize(5_000)
-      .removalListener((key, value, cause) -> {
-        if (UltraEconomy.config.isDebug()) {
-          CobbleUtils.LOGGER.info("Currency simpleText cache removed key: " + key + ", cause: " + cause);
-        }
-      })
       .build());
   }
 
@@ -238,15 +221,10 @@ public class Currency {
       .get(balance, v -> AdventureTranslator.toNative(formatAmount(v, locale)));
   }
 
-  private Cache<BigDecimal, Text> getFormatAmountTextCacheForLocale(Locale locale) {
+  private Cache<@NotNull BigDecimal, Text> getFormatAmountTextCacheForLocale(Locale locale) {
     return formatAmountTextCache.computeIfAbsent(locale, loc -> Caffeine.newBuilder()
       .expireAfterAccess(1, TimeUnit.MINUTES)
       .maximumSize(5_000)
-      .removalListener((key, value, cause) -> {
-        if (UltraEconomy.config.isDebug()) {
-          CobbleUtils.LOGGER.info("Currency amountText cache removed key: " + key + ", cause: " + cause);
-        }
-      })
       .build());
   }
 }

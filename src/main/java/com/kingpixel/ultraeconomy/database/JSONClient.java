@@ -16,6 +16,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class JSONClient extends DatabaseClient {
   private static final String PATH = UltraEconomy.PATH + "/accounts/";
+  private static final String FILE_SUFFIX = ".json";
 
   @Override
   public void connect(DataBaseConfig config) {
@@ -29,7 +30,8 @@ public class JSONClient extends DatabaseClient {
     CobbleUtils.LOGGER.info("JSON database does not require disconnection.");
   }
 
-  @Override public void invalidate(UUID playerUUID) {
+  @Override
+  public void invalidate(UUID playerUUID) {
     DatabaseFactory.CACHE_ACCOUNTS.invalidate(playerUUID);
   }
 
@@ -42,13 +44,13 @@ public class JSONClient extends DatabaseClient {
   public Account getAccount(UUID uuid) {
     Account account = DatabaseFactory.CACHE_ACCOUNTS.getIfPresent(uuid);
     if (account != null) return account;
-    File accountFile = Utils.getAbsolutePath(PATH + uuid.toString() + ".json");
+    File accountFile = Utils.getAbsolutePath(PATH + uuid.toString() + FILE_SUFFIX);
     if (accountFile.exists()) {
       try {
         String data = Utils.readFileSync(accountFile);
         account = Utils.newWithoutSpacingGson().fromJson(data, Account.class);
       } catch (IOException e) {
-        throw new RuntimeException(e);
+        e.printStackTrace();
       }
     } else {
       var player = CobbleUtils.server.getPlayerManager().getPlayer(uuid);
@@ -60,6 +62,10 @@ public class JSONClient extends DatabaseClient {
       }
       account = new Account(player);
       saveOrUpdateAccount(account);
+    }
+    if (account == null) {
+      CobbleUtils.LOGGER.warn("Could not load or create account for player with UUID " + uuid);
+      return null;
     }
     DatabaseFactory.CACHE_ACCOUNTS.put(uuid, account);
     return account;
@@ -74,13 +80,14 @@ public class JSONClient extends DatabaseClient {
       });
   }
 
-  @Override public void saveOrUpdateAccountSync(Account account) {
+  @Override
+  public void saveOrUpdateAccountSync(Account account) {
     saveAccount(account);
   }
 
   private void saveAccount(Account account) {
     String data = Utils.newWithoutSpacingGson().toJson(account, Account.class);
-    File accountFile = Utils.getAbsolutePath(PATH + account.getPlayerUUID().toString() + ".json");
+    File accountFile = Utils.getAbsolutePath(PATH + account.getPlayerUUID().toString() + FILE_SUFFIX);
     Utils.writeFileAsync(accountFile, data);
   }
 
@@ -109,13 +116,15 @@ public class JSONClient extends DatabaseClient {
     return getAccount(uuid).hasEnoughBalance(currency, amount);
   }
 
-  @Override public List<Account> getTopBalances(Currency currency, int page, int playersPerPage) {
+  @Override
+  public List<Account> getTopBalances(Currency currency, int page, int playersPerPage) {
     CobbleUtils.LOGGER.warn("getTopBalances is not supported in JSON database.");
     return List.of();
   }
 
-  @Override public boolean existPlayerWithUUID(UUID uuid) {
-    return Utils.getAbsolutePath(PATH + uuid.toString() + ".json").exists();
+  @Override
+  public boolean existPlayerWithUUID(UUID uuid) {
+    return Utils.getAbsolutePath(PATH + uuid.toString() + FILE_SUFFIX).exists();
   }
 
 
