@@ -93,7 +93,6 @@ public class BaltopCommand {
           .replace("%next_page%", Integer.toString(nextPage)));
         String output = joiner.toString();
 
-        // Enviar todo de una sola vez
         source.sendFeedback(() -> AdventureTranslator.toNative(output), false);
       }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR)
       .exceptionally(e -> {

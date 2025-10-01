@@ -19,11 +19,11 @@ import java.util.concurrent.CompletableFuture;
 /**
  * @author Carlos Varas Alonso - 23/09/2025 22:01
  */
-public class DepositCommand {
+public class WithdrawCommand {
   public static void put(CommandDispatcher<ServerCommandSource> dispatcher, LiteralArgumentBuilder<ServerCommandSource> base) {
     base.then(
-      CommandManager.literal("deposit")
-        .requires(source -> PermissionApi.hasPermission(source, "ultraeconomy.admin.deposit", 2))
+      CommandManager.literal("withdraw")
+        .requires(source -> PermissionApi.hasPermission(source, "ultraeconomy.admin.withdraw", 2))
         .then(
           CommandManager.argument("amount", StringArgumentType.string())
             .then(
@@ -45,7 +45,7 @@ public class DepositCommand {
                           data.ifPresentOrElse(
                             d -> {
                               BigDecimal value = BigDecimal.valueOf(Double.parseDouble(amountStr));
-                              UltraEconomyApi.deposit(d.player().getUuid(), currency.getId(), value);
+                              UltraEconomyApi.withdraw(d.player().getUuid(), currency.getId(), value);
                             },
                             () -> context.getSource().sendError(Text.literal("§cPlayer not found"))
                           );
