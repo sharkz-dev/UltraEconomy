@@ -11,9 +11,11 @@ import com.mongodb.MongoClientSettings;
 import com.mongodb.client.*;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.ReplaceOptions;
+import com.mongodb.client.model.Sorts;
 import com.mongodb.client.model.Updates;
 import net.minecraft.entity.Entity;
 import org.bson.Document;
+import org.bson.UuidRepresentation;
 import org.bson.types.Decimal128;
 
 import java.math.BigDecimal;
@@ -50,6 +52,7 @@ public class MongoDBClient extends DatabaseClient {
       mongoClient = MongoClients.create(
         MongoClientSettings.builder()
           .applyConnectionString(new ConnectionString(config.getUrl()))
+          .uuidRepresentation(UuidRepresentation.STANDARD)
           .applicationName("UltraEconomy-MongoDB")
           .build()
       );
@@ -187,8 +190,8 @@ public class MongoDBClient extends DatabaseClient {
   private void addTransaction(UUID uuid, Currency currency, BigDecimal amount, TransactionType type, boolean processed) {
     CompletableFuture.runAsync(() -> {
         Document tx = new Document(FIELD_ACCOUNT_UUID, uuid.toString())
-          .append(FIELD_ACCOUNT_UUID, currency.getId())
-          .append(FIELD_AMOUNT, new Decimal128(amount)) // ✅ siempre Decimal128
+          .append(FIELD_CURRENCY_ID, currency.getId())
+          .append(FIELD_AMOUNT, new Decimal128(amount))
           .append(FIELD_TYPE, type.name())
           .append(FIELD_PROCESSED, processed)
           .append("timestamp", Date.from(Instant.now()));
@@ -330,25 +333,25 @@ public class MongoDBClient extends DatabaseClient {
   @Override
   public List<Account> getTopBalances(Currency currency, int page, int playersPerPage) {
     List<Account> topAccounts = new ArrayList<>();
-    int skip = (page - 1) * playersPerPage;
+    int skip = Math.max(page - 1, 0) * playersPerPage;
     int index = skip + 1;
 
-    FindIterable<Document> docs = accountsCollection.find()
-      .sort(new Document("balances." + currency, -1)) // ✅ ordena por Decimal128
+    String currencyKey = currency.getId();
+
+    FindIterable<Document> docs = accountsCollection.find(Filters.exists("balances." + currencyKey, true))
+      .sort(Sorts.descending("balances." + currencyKey))
       .skip(skip)
-      .limit(playersPerPage + 1);
+      .limit(playersPerPage + 1); // To know if there's a next page
 
     for (Document doc : docs) {
       Account account = documentToAccount(doc);
-      account.setRank(index);
-      index++;
+      account.setRank(index++);
       topAccounts.add(account);
-
-      DatabaseFactory.CACHE_ACCOUNTS.put(account.getPlayerUUID(), account);
     }
 
     return topAccounts;
   }
+
 
   @Override
   public boolean existPlayerWithUUID(UUID uuid) {

@@ -86,12 +86,12 @@ public class Account {
 
   public void fix() {
     Currencies.getCurrencyMap().forEach((k, v) ->
-      balances.putIfAbsent(k, v.getDefaultBalance()));
+      balances.putIfAbsent(v.getId(), v.getDefaultBalance()));
   }
 
   private Map<String, BigDecimal> defaultBalances() {
     Map<String, BigDecimal> defaults = new ConcurrentHashMap<>();
-    Currencies.getCurrencyMap().forEach((k, v) -> defaults.put(k, v.getDefaultBalance()));
+    Currencies.getCurrencyMap().forEach((k, v) -> defaults.put(v.getId(), v.getDefaultBalance()));
     return defaults;
   }
 

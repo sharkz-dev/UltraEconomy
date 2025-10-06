@@ -6,7 +6,9 @@ import com.kingpixel.ultraeconomy.exceptions.UnknownCurrencyException;
 import com.kingpixel.ultraeconomy.models.Currency;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Carlos Varas Alonso - 23/09/2025 21:37
@@ -29,7 +31,7 @@ public class Currencies {
       currency.setId("dollars");
       CURRENCY_MAP.put(currency.getId(), currency);
       writeCurrency(currency);
-      Currency currency2 = new Currency(false, (byte) 2, "€", new String[]{
+      Currency currency2 = new Currency(false, (byte) 2, "t", new String[]{
         "impactor:tokens"
       });
       currency2.setId("tokens");
@@ -68,7 +70,15 @@ public class Currencies {
         DEFAULT_CURRENCY = v;
       }
     });
-    CURRENCY_IDS = CURRENCY_MAP.keySet().toArray(new String[0]);
+
+    Set<String> IdCurrency = new HashSet<>();
+    CURRENCY_MAP.values().forEach(c -> IdCurrency.add(c.getId()));
+    CURRENCY_IDS = new String[IdCurrency.size()];
+    int i = 0;
+    for (String id : IdCurrency) {
+      CURRENCY_IDS[i] = id;
+      i++;
+    }
   }
 
   public static Map<String, Currency> getCurrencyMap() {

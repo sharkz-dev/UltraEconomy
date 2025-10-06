@@ -28,6 +28,7 @@ public class UltraEconomyApi {
    * Get the account of a target by UUID
    *
    * @param playerUUID the target's UUID
+   *
    * @return the account
    */
   public static Account getAccount(@NotNull UUID playerUUID) {
@@ -38,6 +39,7 @@ public class UltraEconomyApi {
    * Get the account of a target by name
    *
    * @param playerName the target's name
+   *
    * @return the account
    */
   public static Account getAccount(@NotNull String playerName) {
@@ -75,10 +77,20 @@ public class UltraEconomyApi {
    * Get a currency by its ID
    *
    * @param currency the currency ID
+   *
    * @return the currency
    */
   private static Currency getCurrency(String currency) throws UnknownCurrencyException {
     return Currencies.getCurrency(currency);
+  }
+
+  /**
+   * Get the primary currency
+   *
+   * @return the primary currency
+   */
+  private static Currency getPrimaryCurrency() {
+    return Currencies.DEFAULT_CURRENCY;
   }
 
   /**
@@ -87,6 +99,7 @@ public class UltraEconomyApi {
    * @param uuid     the target's UUID
    * @param currency the currency
    * @param amount   the amount
+   *
    * @return true if successful, false otherwise
    */
   public static boolean deposit(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
@@ -113,6 +126,7 @@ public class UltraEconomyApi {
    * @param uuid     the target's UUID
    * @param currency the currency
    * @param amount   the amount
+   *
    * @return the new balance, or null if the currency does not exist
    */
   public static @Nullable BigDecimal setBalance(@NotNull UUID uuid, @NotNull String currency, BigDecimal amount) {
@@ -137,6 +151,7 @@ public class UltraEconomyApi {
    *
    * @param uuid     the target's UUID
    * @param currency the currency
+   *
    * @return the balance, or null if the currency does not exist
    */
   public static @Nullable BigDecimal getBalance(@NotNull UUID uuid, @NotNull String currency) {
@@ -150,6 +165,7 @@ public class UltraEconomyApi {
    * @param uuid     the target's UUID
    * @param currency the currency
    * @param amount   the amount
+   *
    * @return true if the target has enough balance
    */
   public static boolean hasEnoughBalance(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
