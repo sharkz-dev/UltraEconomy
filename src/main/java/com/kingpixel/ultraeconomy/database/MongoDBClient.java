@@ -3,6 +3,7 @@ package com.kingpixel.ultraeconomy.database;
 import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.Model.DataBaseConfig;
 import com.kingpixel.ultraeconomy.UltraEconomy;
+import com.kingpixel.ultraeconomy.api.UltraEconomyApi;
 import com.kingpixel.ultraeconomy.config.Currencies;
 import com.kingpixel.ultraeconomy.models.Account;
 import com.kingpixel.ultraeconomy.models.Currency;
@@ -29,9 +30,9 @@ import java.util.concurrent.TimeUnit;
 public class MongoDBClient extends DatabaseClient {
   private static final String TRANSACTIONS_COLLECTION = "transactions";
   private static final String ACCOUNTS_COLLECTION = "accounts";
-  private static final String FIELD_UUID = "uuid";
-  private static final String FIELD_PLAYER_NAME = "player_name";
-  private static final String FIELD_BALANCES = "balances";
+  public static final String FIELD_UUID = "uuid";
+  public static final String FIELD_PLAYER_NAME = "player_name";
+  public static final String FIELD_BALANCES = "balances";
   private static final String FIELD_ACCOUNT_UUID = "account_uuid";
   private static final String FIELD_CURRENCY_ID = "currency_id";
   private static final String FIELD_AMOUNT = "amount";
@@ -143,7 +144,7 @@ public class MongoDBClient extends DatabaseClient {
     Document doc = accountsCollection.find(Filters.eq(FIELD_UUID, uuid.toString())).first();
     Account account;
     if (doc != null) {
-      account = documentToAccount(doc);
+      account = Account.fromDocument(doc);
     } else {
       var player = CobbleUtils.server.getPlayerManager().getPlayer(uuid);
       if (player != null) {
@@ -174,15 +175,11 @@ public class MongoDBClient extends DatabaseClient {
   }
 
   private void saveAccount(Account account) {
-    Document balances = new Document();
-    account.getBalances().forEach((k, v) -> balances.append(k, new Decimal128(v)));
-    Document doc = new Document(FIELD_UUID, account.getPlayerUUID().toString())
-      .append(FIELD_PLAYER_NAME, account.getPlayerName())
-      .append(FIELD_BALANCES, balances);
+    Document accountDoc = account.toDocument();
 
     accountsCollection.replaceOne(
       Filters.eq(FIELD_UUID, account.getPlayerUUID().toString()),
-      doc,
+      accountDoc,
       new ReplaceOptions().upsert(true)
     );
   }
@@ -259,9 +256,9 @@ public class MongoDBClient extends DatabaseClient {
         }
 
         switch (type) {
-          case DEPOSIT -> account.addBalance(currency, amount);
-          case WITHDRAW -> account.removeBalance(currency, amount);
-          case SET -> account.setBalance(currency, amount);
+          case DEPOSIT -> UltraEconomyApi.deposit(uuid, currency.getId(), amount);
+          case WITHDRAW -> UltraEconomyApi.withdraw(uuid, currency.getId(), amount);
+          case SET -> UltraEconomyApi.setBalance(uuid, currency.getId(), amount);
           default -> {
             CobbleUtils.LOGGER.error("Unknown transaction type: " + type);
             continue;
@@ -344,7 +341,7 @@ public class MongoDBClient extends DatabaseClient {
       .limit(playersPerPage + 1); // To know if there's a next page
 
     for (Document doc : docs) {
-      Account account = documentToAccount(doc);
+      Account account = Account.fromDocument(doc);
       account.setRank(index++);
       topAccounts.add(account);
     }
@@ -359,32 +356,6 @@ public class MongoDBClient extends DatabaseClient {
     return doc != null;
   }
 
-
-  public Account documentToAccount(Document doc) {
-    UUID uuid = UUID.fromString(doc.getString(FIELD_UUID));
-    String playerName = doc.getString(FIELD_PLAYER_NAME);
-
-    Map<String, BigDecimal> balances = new HashMap<>();
-    Document balanceDoc = doc.get(FIELD_BALANCES, Document.class);
-
-    if (balanceDoc != null) {
-      for (String key : balanceDoc.keySet()) {
-        Object rawValue = balanceDoc.get(key);
-
-        if (rawValue instanceof Decimal128 dec) {
-          balances.put(key, dec.bigDecimalValue());
-        } else if (rawValue instanceof String str) {
-          try {
-            balances.put(key, new BigDecimal(str));
-          } catch (NumberFormatException e) {
-            CobbleUtils.LOGGER.warn("Invalid balance format for " + key + " in account " + uuid + ": " + str);
-          }
-        }
-      }
-    }
-
-    return new Account(uuid, playerName, balances);
-  }
 
   public Account getCachedAccount(UUID uuid) {
     var account = DatabaseFactory.CACHE_ACCOUNTS.getIfPresent(uuid);

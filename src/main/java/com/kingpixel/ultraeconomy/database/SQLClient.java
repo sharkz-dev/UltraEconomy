@@ -3,6 +3,7 @@ package com.kingpixel.ultraeconomy.database;
 import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.Model.DataBaseConfig;
 import com.kingpixel.cobbleutils.Model.DataBaseType;
+import com.kingpixel.ultraeconomy.api.UltraEconomyApi;
 import com.kingpixel.ultraeconomy.config.Currencies;
 import com.kingpixel.ultraeconomy.exceptions.DatabaseConnectionException;
 import com.kingpixel.ultraeconomy.exceptions.UnknownAccountException;
@@ -288,9 +289,9 @@ public class SQLClient extends DatabaseClient {
           TransactionType type = rs.getString("type") != null ? TransactionType.valueOf(rs.getString("type")) : TransactionType.DEPOSIT;
 
           switch (type) {
-            case DEPOSIT -> account.addBalance(currency, amount);
-            case WITHDRAW -> account.removeBalance(currency, amount);
-            case SET -> account.setBalance(currency, amount);
+            case DEPOSIT -> UltraEconomyApi.deposit(uuid, currency.getId(), amount);
+            case WITHDRAW -> UltraEconomyApi.withdraw(uuid, currency.getId(), amount);
+            case SET -> UltraEconomyApi.setBalance(uuid, currency.getId(), amount);
             default -> {
               CobbleUtils.LOGGER.warn("Unknown transaction type for transaction ID " + id);
               continue;

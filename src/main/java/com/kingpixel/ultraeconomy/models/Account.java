@@ -11,12 +11,17 @@ import lombok.ToString;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LoreComponent;
 import net.minecraft.server.network.ServerPlayerEntity;
+import org.bson.Document;
+import org.bson.types.Decimal128;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static com.kingpixel.ultraeconomy.database.MongoDBClient.*;
 
 @Data
 @EqualsAndHashCode
@@ -59,6 +64,46 @@ public class Account {
     this.playerUUID = playerUUID;
     this.playerName = playerName;
     this.balances = defaultBalances();
+  }
+
+  public static Account fromDocument(Document doc) {
+    UUID uuid = UUID.fromString(doc.getString(FIELD_UUID));
+    String playerName = doc.getString(FIELD_PLAYER_NAME);
+
+    Map<String, BigDecimal> balances = new HashMap<>();
+    Document balanceDoc = doc.get(FIELD_BALANCES, Document.class);
+
+    if (balanceDoc != null) {
+      for (Map.Entry<String, Object> entry : balanceDoc.entrySet()) {
+        String key = entry.getKey();
+        Object rawValue = entry.getValue();
+        if (rawValue instanceof Decimal128 dec) {
+          balances.put(key, dec.bigDecimalValue());
+        } else if (rawValue instanceof String str) {
+          try {
+            balances.put(key, new BigDecimal(str));
+          } catch (NumberFormatException e) {
+            CobbleUtils.LOGGER.warn("Invalid balance format for " + key + " in account " + uuid + ": " + str);
+          }
+        }
+      }
+    }
+
+    return new Account(uuid, playerName, balances);
+  }
+
+  public Document toDocument() {
+    Document doc = new Document();
+    doc.append(FIELD_UUID, playerUUID.toString());
+    doc.append(FIELD_PLAYER_NAME, playerName);
+
+    Document balanceDoc = new Document();
+    for (Map.Entry<String, BigDecimal> entry : balances.entrySet()) {
+      balanceDoc.append(entry.getKey(), new Decimal128(entry.getValue()));
+    }
+    doc.append(FIELD_BALANCES, balanceDoc);
+
+    return doc;
   }
 
   public BigDecimal getBalance(Currency currency) {
