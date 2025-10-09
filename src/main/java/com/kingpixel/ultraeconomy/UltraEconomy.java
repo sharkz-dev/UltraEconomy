@@ -61,6 +61,7 @@ public class UltraEconomy implements ModInitializer {
     ServerPlayerEvents.JOIN.register((player) -> {
       CompletableFuture.runAsync(() -> {
           Account account = DatabaseFactory.INSTANCE.getAccount(player.getUuid());
+          DatabaseFactory.CACHE_ACCOUNTS.put(player.getUuid(), account);
           account.fix();
           DatabaseFactory.INSTANCE.saveOrUpdateAccount(account);
         }, ULTRA_ECONOMY_EXECUTOR)

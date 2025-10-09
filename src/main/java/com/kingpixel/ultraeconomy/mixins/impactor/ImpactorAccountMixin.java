@@ -8,6 +8,7 @@ import net.impactdev.impactor.api.economy.transactions.EconomyTransaction;
 import net.impactdev.impactor.api.economy.transactions.EconomyTransferTransaction;
 import net.impactdev.impactor.api.economy.transactions.details.EconomyTransactionType;
 import net.impactdev.impactor.core.economy.accounts.ImpactorAccount;
+import net.impactdev.impactor.core.economy.transactions.composers.BaseTransactionComposer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -23,17 +24,40 @@ import java.util.Map;
 public abstract class ImpactorAccountMixin {
 
   @Unique
-  private final Map<Currency, String> currencyIdCache = new HashMap<>();
+  private final Map<Currency, com.kingpixel.ultraeconomy.models.Currency> currencyIdCache = new HashMap<>();
 
   @Unique
   private String getCurrencyId(Currency currency) {
-    return currencyIdCache.computeIfAbsent(currency, c -> c.key().value().replace("impactor:", ""));
+    return currencyIdCache.computeIfAbsent(currency, c -> UltraEconomyApi.getCurrency(c.key().value())).getId();
   }
 
   @Inject(method = "deposit(Ljava/math/BigDecimal;)Lnet/impactdev/impactor/api/economy/transactions" +
     "/EconomyTransaction;", at = @At("HEAD"), cancellable = true, remap = false)
   private void deposit(BigDecimal amount,
                        CallbackInfoReturnable<EconomyTransaction> cir) {
+    if (UltraEconomy.migrationDone) {
+      ImpactorAccount self = (ImpactorAccount) (Object) this;
+      UltraEconomyApi.deposit(self.owner(), getCurrencyId(self.currency()), amount);
+      cir.setReturnValue(EconomyTransaction.compose()
+        .account(self)
+        .amount(amount)
+        .type(EconomyTransactionType.DEPOSIT)
+        .build());
+    }
+  }
+
+  @Inject(method = "deposit(Lnet/impactdev/impactor/core/economy/transactions/composers/BaseTransactionComposer;)" +
+    "Lnet/impactdev/impactor/api/economy/transactions/EconomyTransaction;", at = @At("HEAD"), remap = false)
+  private void deposit(BaseTransactionComposer composer, CallbackInfoReturnable<EconomyTransaction> cir) {
+    if (UltraEconomy.migrationDone) {
+      ImpactorAccount self = (ImpactorAccount) (Object) this;
+      BigDecimal amount = composer.amount();
+      UltraEconomyApi.deposit(self.owner(), getCurrencyId(self.currency()), amount);
+    }
+  }
+
+  @Inject(method = "lambda$deposit$6", at = @At("HEAD"), remap = false)
+  private void depositAsync(BigDecimal amount, CallbackInfoReturnable<EconomyTransaction> cir) {
     if (UltraEconomy.migrationDone) {
       ImpactorAccount self = (ImpactorAccount) (Object) this;
       UltraEconomyApi.deposit(self.owner(), getCurrencyId(self.currency()), amount);

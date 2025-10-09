@@ -67,10 +67,8 @@ public class UltraEconomyApi {
   }
 
   private static void aggressiveSave(UUID playerUUID) {
-    if (UltraEconomy.config.isAggressiveSave()) {
-      var account = DatabaseFactory.CACHE_ACCOUNTS.getIfPresent(playerUUID);
-      if (account != null) saveAccount(account);
-    }
+    var account = DatabaseFactory.CACHE_ACCOUNTS.getIfPresent(playerUUID);
+    if (account != null) saveAccount(account);
   }
 
   /**
@@ -80,7 +78,7 @@ public class UltraEconomyApi {
    *
    * @return the currency
    */
-  private static Currency getCurrency(String currency) throws UnknownCurrencyException {
+  public static Currency getCurrency(String currency) throws UnknownCurrencyException {
     return Currencies.getCurrency(currency);
   }
 

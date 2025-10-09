@@ -92,12 +92,8 @@ public class Currencies {
 
   public static Currency getCurrency(String currency) throws UnknownCurrencyException {
     var curr = CURRENCY_MAP.get(currency);
-    if (curr == null && UltraEconomy.config.isUseCurrencyDefaultWhenNotFound()) {
-      curr = DEFAULT_CURRENCY;
-    }
-    if (curr == null) {
-      throw new UnknownCurrencyException(currency);
-    }
+    if (curr == null) curr = DEFAULT_CURRENCY;
+    if (curr == null) throw new UnknownCurrencyException(currency);
     return curr;
   }
 

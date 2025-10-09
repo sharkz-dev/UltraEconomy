@@ -13,7 +13,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 public class DatabaseFactory {
   /**
@@ -24,7 +23,6 @@ public class DatabaseFactory {
    */
   public static final Cache<@NotNull UUID, Account> CACHE_ACCOUNTS = Caffeine
     .newBuilder()
-    .expireAfterAccess(1, TimeUnit.MINUTES)
     .maximumSize(1000)
     .removalListener((key, value, cause) -> {
       if (cause.equals(RemovalCause.REPLACED) || UltraEconomy.server.isStopping() || UltraEconomy.server.isStopped())
@@ -44,7 +42,6 @@ public class DatabaseFactory {
   public static void init(DataBaseConfig config) {
     if (INSTANCE != null) INSTANCE.disconnect();
     switch (config.getType()) {
-      case JSON -> INSTANCE = new JSONClient();
       case SQLITE, MYSQL, MARIADB, H2 -> INSTANCE = new SQLClient();
       case MONGODB -> INSTANCE = new MongoDBClient();
       default ->

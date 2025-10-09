@@ -46,7 +46,7 @@ public abstract class DatabaseClient {
    * @return The account, or null if not found
    */
   public abstract Account getAccount(UUID uuid);
-
+  
   /**
    * Save or update an account
    *

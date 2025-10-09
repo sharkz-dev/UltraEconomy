@@ -155,8 +155,6 @@ public class MongoDBClient extends DatabaseClient {
         return null;
       }
     }
-
-    DatabaseFactory.CACHE_ACCOUNTS.put(uuid, account);
     return account;
   }
 
@@ -226,6 +224,10 @@ public class MongoDBClient extends DatabaseClient {
           if (UltraEconomy.config.isDebug()) {
             CobbleUtils.LOGGER.warn("Account not found in cache for transaction: " + tx.toJson());
           }
+          transactionsCollection.updateOne(
+            Filters.eq("_id", tx.getObjectId("_id")),
+            Updates.set(FIELD_PROCESSED, false)
+          );
           continue;
         }
 
@@ -284,8 +286,14 @@ public class MongoDBClient extends DatabaseClient {
     Account account = getCachedAccount(uuid);
     boolean result = true;
     if (account == null) {
+      if (UltraEconomy.config.isDebug()) {
+        CobbleUtils.LOGGER.warn(UltraEconomy.MOD_ID, "Account not found in cache for UUID: " + uuid + ", queuing transaction.");
+      }
       addTransaction(uuid, currency, amount, TransactionType.DEPOSIT, false);
     } else {
+      if (UltraEconomy.config.isDebug()) {
+        CobbleUtils.LOGGER.info(UltraEconomy.MOD_ID, "Account found in cache for UUID: " + uuid + ", adding balance.");
+      }
       result = account.addBalance(currency, amount);
       if (result) addTransaction(uuid, currency, amount, TransactionType.DEPOSIT, true);
     }
@@ -297,8 +305,14 @@ public class MongoDBClient extends DatabaseClient {
     Account account = getCachedAccount(uuid);
     boolean result = true;
     if (account == null) {
+      if (UltraEconomy.config.isDebug()) {
+        CobbleUtils.LOGGER.warn(UltraEconomy.MOD_ID, "Account not found in cache for UUID: " + uuid + ", queuing transaction.");
+      }
       addTransaction(uuid, currency, amount, TransactionType.WITHDRAW, false);
     } else {
+      if (UltraEconomy.config.isDebug()) {
+        CobbleUtils.LOGGER.info(UltraEconomy.MOD_ID, "Account found in cache for UUID: " + uuid + ", removing balance.");
+      }
       result = account.removeBalance(currency, amount);
       addTransaction(uuid, currency, amount, TransactionType.WITHDRAW, true);
     }
@@ -309,8 +323,14 @@ public class MongoDBClient extends DatabaseClient {
   public BigDecimal setBalance(UUID uuid, Currency currency, BigDecimal amount) {
     Account account = getCachedAccount(uuid);
     if (account == null) {
+      if (UltraEconomy.config.isDebug()) {
+        CobbleUtils.LOGGER.warn(UltraEconomy.MOD_ID, "Account not found in cache for UUID: " + uuid + ", queuing transaction.");
+      }
       addTransaction(uuid, currency, amount, TransactionType.SET, false);
     } else {
+      if (UltraEconomy.config.isDebug()) {
+        CobbleUtils.LOGGER.info(UltraEconomy.MOD_ID, "Account found in cache for UUID: " + uuid + ", setting balance.");
+      }
       account.setBalance(currency, amount);
       addTransaction(uuid, currency, amount, TransactionType.SET, true);
     }
@@ -358,16 +378,6 @@ public class MongoDBClient extends DatabaseClient {
 
 
   public Account getCachedAccount(UUID uuid) {
-    var account = DatabaseFactory.CACHE_ACCOUNTS.getIfPresent(uuid);
-    if (account == null) {
-      if (UltraEconomy.config.isDebug()) {
-        CobbleUtils.LOGGER.warn("Account not found in cache for UUID: " + uuid);
-      }
-    } else {
-      if (UltraEconomy.config.isDebug()) {
-        CobbleUtils.LOGGER.info("Account found in cache for UUID: " + uuid);
-      }
-    }
-    return account;
+    return DatabaseFactory.CACHE_ACCOUNTS.getIfPresent(uuid);
   }
 }
