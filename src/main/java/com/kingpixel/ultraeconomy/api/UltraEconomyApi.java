@@ -8,6 +8,7 @@ import com.kingpixel.ultraeconomy.UltraEconomy;
 import com.kingpixel.ultraeconomy.config.Currencies;
 import com.kingpixel.ultraeconomy.database.DatabaseFactory;
 import com.kingpixel.ultraeconomy.exceptions.UnknownCurrencyException;
+import com.kingpixel.ultraeconomy.manager.PlayerMessageQueueManager;
 import com.kingpixel.ultraeconomy.models.Account;
 import com.kingpixel.ultraeconomy.models.Currency;
 import com.kingpixel.ultraeconomy.placeholders.PlaceHoldersPrefix;
@@ -106,9 +107,12 @@ public class UltraEconomyApi {
     boolean result = DatabaseFactory.INSTANCE.deposit(uuid, c, amount);
     if (UltraEconomy.config.isNotifications()) {
       var message = UltraEconomy.lang.getMessageDeposit();
-      message.sendMessage(uuid, UltraEconomy.lang.getPrefix(), false, false, null,
-        message.getRawMessage().replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, c.format(amount,
-          getLocale(uuid))));
+      runMessage(
+        uuid,
+        () -> message.sendMessage(uuid, UltraEconomy.lang.getPrefix(), false, false, null,
+          message.getRawMessage().replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, c.format(amount,
+            getLocale(uuid))))
+      );
     }
     aggressiveSave(uuid);
     long end = System.currentTimeMillis();
@@ -133,8 +137,12 @@ public class UltraEconomyApi {
     BigDecimal result = DatabaseFactory.INSTANCE.setBalance(uuid, c, amount);
     if (UltraEconomy.config.isNotifications()) {
       var message = UltraEconomy.lang.getMessageSetBalance();
-      message.sendMessage(uuid, UltraEconomy.lang.getPrefix(), false, false, null,
-        message.getRawMessage().replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, c.format(amount, getLocale(uuid))));
+      runMessage(
+        uuid,
+        () -> message.sendMessage(uuid, UltraEconomy.lang.getPrefix(), false, false, null,
+          message.getRawMessage().replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, c.format(amount,
+            getLocale(uuid))))
+      );
     }
     aggressiveSave(uuid);
     long end = System.currentTimeMillis();
@@ -172,8 +180,12 @@ public class UltraEconomyApi {
     var result = DatabaseFactory.INSTANCE.hasEnoughBalance(uuid, c, amount);
     if (UltraEconomy.config.isNotifications() && !result) {
       var message = UltraEconomy.lang.getMessageNoMoney();
-      message.sendMessage(uuid, UltraEconomy.lang.getPrefix(), false, false, null,
-        message.getRawMessage().replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, c.format(amount, getLocale(uuid))));
+      runMessage(
+        uuid,
+        () -> message.sendMessage(uuid, UltraEconomy.lang.getPrefix(), false, false, null,
+          message.getRawMessage().replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, c.format(amount,
+            getLocale(uuid))))
+      );
     }
     long end = System.currentTimeMillis();
     if (UltraEconomy.config.isDebug()) {
@@ -223,16 +235,24 @@ public class UltraEconomyApi {
     if (UltraEconomy.config.isNotifications()) {
 
       var messageSender = UltraEconomy.lang.getMessagePaySuccessSender();
-      messageSender.sendMessage(executor, UltraEconomy.lang.getPrefix(), false, false, null,
-        messageSender.getRawMessage()
-          .replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, curr.format(amount, getLocale(executor)))
-          .replace("%player%", nameTarget)
+      runMessage(
+        executor,
+        () -> messageSender.sendMessage(executor, UltraEconomy.lang.getPrefix(), false, false, null,
+          messageSender.getRawMessage()
+            .replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, curr.format(amount, getLocale(executor)))
+            .replace("%player%", nameTarget)
+        )
       );
+
       var messageReceiver = UltraEconomy.lang.getMessagePaySuccessReceiver();
-      messageReceiver.sendMessage(target, UltraEconomy.lang.getPrefix(), false, false, null,
-        messageReceiver.getRawMessage()
-          .replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, curr.format(amount, getLocale(target)))
-          .replace("%player%", nameExecutor)
+
+      runMessage(
+        target,
+        () -> messageReceiver.sendMessage(target, UltraEconomy.lang.getPrefix(), false, false, null,
+          messageReceiver.getRawMessage()
+            .replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, curr.format(amount, getLocale(target)))
+            .replace("%player%", nameExecutor)
+        )
       );
     }
     aggressiveSave(executor);
@@ -313,6 +333,14 @@ public class UltraEconomyApi {
 
   }
 
+
+  private static void runMessage(UUID playerUUID, Runnable runnable) {
+    if (UltraEconomy.config.isQueueMessages()) {
+      PlayerMessageQueueManager.enqueue(playerUUID, runnable);
+    } else {
+      runnable.run();
+    }
+  }
 
   public static boolean existsPlayerWithName(String target) {
     return DatabaseFactory.INSTANCE.existPlayerWithName(target);

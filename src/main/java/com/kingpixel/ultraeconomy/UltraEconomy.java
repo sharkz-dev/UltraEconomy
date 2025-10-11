@@ -8,6 +8,7 @@ import com.kingpixel.ultraeconomy.config.Config;
 import com.kingpixel.ultraeconomy.config.Currencies;
 import com.kingpixel.ultraeconomy.config.Lang;
 import com.kingpixel.ultraeconomy.database.DatabaseFactory;
+import com.kingpixel.ultraeconomy.manager.PlayerMessageQueueManager;
 import com.kingpixel.ultraeconomy.models.Account;
 import com.kingpixel.ultraeconomy.placeholders.PlaceHolders;
 import net.fabricmc.api.ModInitializer;
@@ -85,6 +86,7 @@ public class UltraEconomy implements ModInitializer {
       DatabaseFactory.INSTANCE.flushCache();
       DatabaseFactory.INSTANCE.disconnect();
       CobbleUtils.shutdownAndAwait(ULTRA_ECONOMY_EXECUTOR);
+      CobbleUtils.shutdownAndAwait(PlayerMessageQueueManager.SCHEDULER);
     });
 
     CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> Register.register(dispatcher));
