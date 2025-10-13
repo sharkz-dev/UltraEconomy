@@ -37,7 +37,7 @@ public class JSONClient extends DatabaseClient {
 
   @Override
   public boolean isConnected() {
-    return false;
+    return true;
   }
 
   @Override

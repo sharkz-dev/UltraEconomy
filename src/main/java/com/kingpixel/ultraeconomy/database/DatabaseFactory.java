@@ -49,4 +49,8 @@ public class DatabaseFactory {
     }
     INSTANCE.connect(config);
   }
+
+  public static boolean isConnected() {
+    return INSTANCE != null && INSTANCE.isConnected();
+  }
 }
