@@ -10,6 +10,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.util.Locale;
 import java.util.Map;
@@ -53,8 +55,7 @@ public class Currency {
   private Text symbolText;
 
   public Text getSymbolText() {
-    if (symbolText == null) symbolText = AdventureTranslator.toNative(this.symbol);
-    return symbolText;
+    return symbolText == null ? (symbolText = AdventureTranslator.toNative(this.symbol)) : symbolText;
   }
 
   public Currency() {
@@ -65,13 +66,14 @@ public class Currency {
     this.currencyIds = new String[]{};
   }
 
-  public Currency(boolean primary, byte decimals, String symbol) {
+  public Currency(boolean primary, byte decimals, String symbol, String[] currencyIds) {
     super();
     this.primary = primary;
     this.transferable = true;
     this.decimals = decimals;
     this.defaultBalance = BigDecimal.ZERO;
     this.symbol = symbol;
+    this.currencyIds = currencyIds;
   }
 
   /**
@@ -169,19 +171,24 @@ public class Currency {
     BigDecimal thousand = BigDecimal.valueOf(1000);
     int suffixIndex = 0;
 
-    // Reduce the number until it's below 1000 or suffixes run out
+    // Reduce the number hasta que sea menor a 1000
     while (value.compareTo(thousand) >= 0 && suffixIndex < suffixes.length - 1) {
       value = value.divide(thousand, 2, RoundingMode.DOWN);
       suffixIndex++;
     }
 
-    NumberFormat nf = NumberFormat.getNumberInstance(locale);
-    nf.setMaximumFractionDigits(Math.max(decimals, UltraEconomy.config.getAdjustmentShortName()));
-    nf.setMinimumFractionDigits(0);
-    nf.setGroupingUsed(false);
+    // Usar DecimalFormat para controlar el redondeo
+    DecimalFormatSymbols symbols = new DecimalFormatSymbols(locale);
+    DecimalFormat df = new DecimalFormat();
+    df.setDecimalFormatSymbols(symbols);
+    df.setMaximumFractionDigits(Math.max(decimals, UltraEconomy.config.getAdjustmentShortName()));
+    df.setMinimumFractionDigits(0);
+    df.setGroupingUsed(false);
+    df.setRoundingMode(RoundingMode.DOWN); // Trunca siempre hacia abajo
 
-    return nf.format(value) + suffixes[suffixIndex];
+    return df.format(value) + suffixes[suffixIndex];
   }
+
 
   // ================== FORMAT TEXT CACHES ==================
 

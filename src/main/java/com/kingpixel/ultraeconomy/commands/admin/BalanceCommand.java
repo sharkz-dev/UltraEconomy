@@ -45,7 +45,8 @@ public class BalanceCommand {
               builder.suggest(Currencies.CURRENCY_IDS[i]);
             }
             return builder.buildFuture();
-          }).executes(context -> {
+          })
+          .executes(context -> {
             ServerPlayerEntity player = context.getSource().getPlayer();
             run(player == null ? null : player.getUuid(), context, StringArgumentType.getString(context,
               KEY_CURRENCY));

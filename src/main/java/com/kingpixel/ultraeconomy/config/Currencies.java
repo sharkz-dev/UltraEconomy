@@ -6,7 +6,9 @@ import com.kingpixel.ultraeconomy.exceptions.UnknownCurrencyException;
 import com.kingpixel.ultraeconomy.models.Currency;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Carlos Varas Alonso - 23/09/2025 21:37
@@ -23,12 +25,16 @@ public class Currencies {
     folder.mkdirs();
     var files = Utils.getFiles(folder);
     if (files.isEmpty()) {
-      Currency currency = new Currency(true, (byte) 2, "$");
-      currency.setId("dollar");
+      Currency currency = new Currency(true, (byte) 2, "$", new String[]{
+        "impactor:dollars"
+      });
+      currency.setId("dollars");
       CURRENCY_MAP.put(currency.getId(), currency);
       writeCurrency(currency);
-      Currency currency2 = new Currency(false, (byte) 2, "€");
-      currency2.setId("euro");
+      Currency currency2 = new Currency(false, (byte) 2, "t", new String[]{
+        "impactor:tokens"
+      });
+      currency2.setId("tokens");
       CURRENCY_MAP.put(currency2.getId(), currency2);
       writeCurrency(currency2);
     } else {
@@ -64,7 +70,15 @@ public class Currencies {
         DEFAULT_CURRENCY = v;
       }
     });
-    CURRENCY_IDS = CURRENCY_MAP.keySet().toArray(new String[0]);
+
+    Set<String> IdCurrency = new HashSet<>();
+    CURRENCY_MAP.values().forEach(c -> IdCurrency.add(c.getId()));
+    CURRENCY_IDS = new String[IdCurrency.size()];
+    int i = 0;
+    for (String id : IdCurrency) {
+      CURRENCY_IDS[i] = id;
+      i++;
+    }
   }
 
   public static Map<String, Currency> getCurrencyMap() {
@@ -78,12 +92,8 @@ public class Currencies {
 
   public static Currency getCurrency(String currency) throws UnknownCurrencyException {
     var curr = CURRENCY_MAP.get(currency);
-    if (curr == null && UltraEconomy.config.isUseCurrencyDefaultWhenNotFound()) {
-      curr = DEFAULT_CURRENCY;
-    }
-    if (curr == null) {
-      throw new UnknownCurrencyException(currency);
-    }
+    if (curr == null) curr = DEFAULT_CURRENCY;
+    if (curr == null) throw new UnknownCurrencyException(currency);
     return curr;
   }
 

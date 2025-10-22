@@ -34,7 +34,7 @@ public class BalTopMenu {
   public BalTopMenu() {
     this.title = "Balance Top";
     this.rows = 6;
-    this.playersPerPage = 44;
+    this.playersPerPage = 45;
     this.rectangle = new Rectangle(rows);
     this.prevPageItem = new ItemModel(45, "minecraft:arrow", "&aPrevious Page", List.of("&7Go to the previous page"), 0);
     this.closeItem = new ItemModel(49, "minecraft:barrier", "&cClose", List.of("&7Close the menu"), 0);

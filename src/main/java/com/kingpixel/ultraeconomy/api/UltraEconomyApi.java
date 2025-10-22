@@ -8,6 +8,7 @@ import com.kingpixel.ultraeconomy.UltraEconomy;
 import com.kingpixel.ultraeconomy.config.Currencies;
 import com.kingpixel.ultraeconomy.database.DatabaseFactory;
 import com.kingpixel.ultraeconomy.exceptions.UnknownCurrencyException;
+import com.kingpixel.ultraeconomy.manager.PlayerMessageQueueManager;
 import com.kingpixel.ultraeconomy.models.Account;
 import com.kingpixel.ultraeconomy.models.Currency;
 import com.kingpixel.ultraeconomy.placeholders.PlaceHoldersPrefix;
@@ -28,6 +29,7 @@ public class UltraEconomyApi {
    * Get the account of a target by UUID
    *
    * @param playerUUID the target's UUID
+   *
    * @return the account
    */
   public static Account getAccount(@NotNull UUID playerUUID) {
@@ -38,6 +40,7 @@ public class UltraEconomyApi {
    * Get the account of a target by name
    *
    * @param playerName the target's name
+   *
    * @return the account
    */
   public static Account getAccount(@NotNull String playerName) {
@@ -47,14 +50,6 @@ public class UltraEconomyApi {
     return profile.map(gameProfile -> getAccount(gameProfile.getId())).orElse(null);
   }
 
-  /**
-   * Withdraw an amount from a target's account
-   *
-   * @param uuid     the target's UUID
-   * @param currency the currency
-   * @param amount   the amount
-   * @return true if successful, false otherwise
-   */
   public static boolean withdraw(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
     long start = System.currentTimeMillis();
     Currency c = getCurrency(currency);
@@ -72,26 +67,29 @@ public class UltraEconomyApi {
     return result;
   }
 
-  /**
-   * Aggressively save an account if the config is set to do so
-   *
-   * @param playerUUID the player's UUID
-   */
   private static void aggressiveSave(UUID playerUUID) {
-    if (UltraEconomy.config.isAggressiveSave()) {
-      var account = DatabaseFactory.CACHE_ACCOUNTS.getIfPresent(playerUUID);
-      if (account != null) saveAccount(account);
-    }
+    var account = DatabaseFactory.CACHE_ACCOUNTS.getIfPresent(playerUUID);
+    if (account != null) saveAccount(account);
   }
 
   /**
    * Get a currency by its ID
    *
    * @param currency the currency ID
+   *
    * @return the currency
    */
-  private static Currency getCurrency(String currency) throws UnknownCurrencyException {
+  public static Currency getCurrency(String currency) throws UnknownCurrencyException {
     return Currencies.getCurrency(currency);
+  }
+
+  /**
+   * Get the primary currency
+   *
+   * @return the primary currency
+   */
+  private static Currency getPrimaryCurrency() {
+    return Currencies.DEFAULT_CURRENCY;
   }
 
   /**
@@ -100,6 +98,7 @@ public class UltraEconomyApi {
    * @param uuid     the target's UUID
    * @param currency the currency
    * @param amount   the amount
+   *
    * @return true if successful, false otherwise
    */
   public static boolean deposit(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
@@ -108,9 +107,12 @@ public class UltraEconomyApi {
     boolean result = DatabaseFactory.INSTANCE.deposit(uuid, c, amount);
     if (UltraEconomy.config.isNotifications()) {
       var message = UltraEconomy.lang.getMessageDeposit();
-      message.sendMessage(uuid, UltraEconomy.lang.getPrefix(), false, false, null,
-        message.getRawMessage().replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, c.format(amount,
-          getLocale(uuid))));
+      runMessage(
+        uuid,
+        () -> message.sendMessage(uuid, UltraEconomy.lang.getPrefix(), false, false, null,
+          message.getRawMessage().replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, c.format(amount,
+            getLocale(uuid))))
+      );
     }
     aggressiveSave(uuid);
     long end = System.currentTimeMillis();
@@ -126,6 +128,7 @@ public class UltraEconomyApi {
    * @param uuid     the target's UUID
    * @param currency the currency
    * @param amount   the amount
+   *
    * @return the new balance, or null if the currency does not exist
    */
   public static @Nullable BigDecimal setBalance(@NotNull UUID uuid, @NotNull String currency, BigDecimal amount) {
@@ -134,8 +137,12 @@ public class UltraEconomyApi {
     BigDecimal result = DatabaseFactory.INSTANCE.setBalance(uuid, c, amount);
     if (UltraEconomy.config.isNotifications()) {
       var message = UltraEconomy.lang.getMessageSetBalance();
-      message.sendMessage(uuid, UltraEconomy.lang.getPrefix(), false, false, null,
-        message.getRawMessage().replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, c.format(amount, getLocale(uuid))));
+      runMessage(
+        uuid,
+        () -> message.sendMessage(uuid, UltraEconomy.lang.getPrefix(), false, false, null,
+          message.getRawMessage().replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, c.format(amount,
+            getLocale(uuid))))
+      );
     }
     aggressiveSave(uuid);
     long end = System.currentTimeMillis();
@@ -150,6 +157,7 @@ public class UltraEconomyApi {
    *
    * @param uuid     the target's UUID
    * @param currency the currency
+   *
    * @return the balance, or null if the currency does not exist
    */
   public static @Nullable BigDecimal getBalance(@NotNull UUID uuid, @NotNull String currency) {
@@ -163,6 +171,7 @@ public class UltraEconomyApi {
    * @param uuid     the target's UUID
    * @param currency the currency
    * @param amount   the amount
+   *
    * @return true if the target has enough balance
    */
   public static boolean hasEnoughBalance(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
@@ -171,8 +180,12 @@ public class UltraEconomyApi {
     var result = DatabaseFactory.INSTANCE.hasEnoughBalance(uuid, c, amount);
     if (UltraEconomy.config.isNotifications() && !result) {
       var message = UltraEconomy.lang.getMessageNoMoney();
-      message.sendMessage(uuid, UltraEconomy.lang.getPrefix(), false, false, null,
-        message.getRawMessage().replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, c.format(amount, getLocale(uuid))));
+      runMessage(
+        uuid,
+        () -> message.sendMessage(uuid, UltraEconomy.lang.getPrefix(), false, false, null,
+          message.getRawMessage().replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, c.format(amount,
+            getLocale(uuid))))
+      );
     }
     long end = System.currentTimeMillis();
     if (UltraEconomy.config.isDebug()) {
@@ -181,15 +194,7 @@ public class UltraEconomyApi {
     return result;
   }
 
-  /**
-   * Transfer an amount from an executor to a target
-   *
-   * @param executor the executor's UUID
-   * @param target   the target's UUID
-   * @param currency the currency
-   * @param amount   the amount
-   * @return true if successful, false otherwise
-   */
+
   public static boolean transfer(UUID executor, UUID target, String currency, BigDecimal amount) {
     long start = System.currentTimeMillis();
     Currency curr = getCurrency(currency);
@@ -230,16 +235,24 @@ public class UltraEconomyApi {
     if (UltraEconomy.config.isNotifications()) {
 
       var messageSender = UltraEconomy.lang.getMessagePaySuccessSender();
-      messageSender.sendMessage(executor, UltraEconomy.lang.getPrefix(), false, false, null,
-        messageSender.getRawMessage()
-          .replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, curr.format(amount, getLocale(executor)))
-          .replace("%player%", nameTarget)
+      runMessage(
+        executor,
+        () -> messageSender.sendMessage(executor, UltraEconomy.lang.getPrefix(), false, false, null,
+          messageSender.getRawMessage()
+            .replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, curr.format(amount, getLocale(executor)))
+            .replace("%player%", nameTarget)
+        )
       );
+
       var messageReceiver = UltraEconomy.lang.getMessagePaySuccessReceiver();
-      messageReceiver.sendMessage(target, UltraEconomy.lang.getPrefix(), false, false, null,
-        messageReceiver.getRawMessage()
-          .replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, curr.format(amount, getLocale(target)))
-          .replace("%player%", nameExecutor)
+
+      runMessage(
+        target,
+        () -> messageReceiver.sendMessage(target, UltraEconomy.lang.getPrefix(), false, false, null,
+          messageReceiver.getRawMessage()
+            .replace(PlaceHoldersPrefix.PLACEHOLDER_AMOUNT, curr.format(amount, getLocale(target)))
+            .replace("%player%", nameExecutor)
+        )
       );
     }
     aggressiveSave(executor);
@@ -265,11 +278,6 @@ public class UltraEconomyApi {
     }
   }
 
-  /**
-   * Save an account to the database synchronously (This is done automatically when modifying the account)
-   *
-   * @param account the account
-   */
   public static void saveAccountSync(Account account) {
     long start = System.currentTimeMillis();
     DatabaseFactory.INSTANCE.saveOrUpdateAccountSync(account);
@@ -279,27 +287,14 @@ public class UltraEconomyApi {
     }
   }
 
-  /**
-   * Get the locale of a player by UUID
-   *
-   * @param playerUUID the player's UUID
-   * @return the locale
-   */
   public static Locale getLocale(UUID playerUUID) {
     return getLocale(UltraEconomy.server.getPlayerManager().getPlayer(playerUUID));
   }
-
 
   private static final Cache<String, Locale> localeCache = Caffeine.newBuilder()
     .maximumSize(100)
     .build();
 
-  /**
-   * Get the locale of a player
-   *
-   * @param player the player
-   * @return the locale
-   */
   public static Locale getLocale(ServerPlayerEntity player) {
     // Locale del servidor como fallback
     Locale serverLocale = Locale.US; // ajusta según tu implementación
@@ -338,12 +333,15 @@ public class UltraEconomyApi {
 
   }
 
-  /**
-   * Check if a player exists with the given name
-   *
-   * @param target the player's name
-   * @return true if the player exists, false otherwise
-   */
+
+  private static void runMessage(UUID playerUUID, Runnable runnable) {
+    if (UltraEconomy.config.isQueueMessages()) {
+      PlayerMessageQueueManager.enqueue(playerUUID, runnable);
+    } else {
+      runnable.run();
+    }
+  }
+
   public static boolean existsPlayerWithName(String target) {
     return DatabaseFactory.INSTANCE.existPlayerWithName(target);
   }

@@ -37,7 +37,7 @@ public class JSONClient extends DatabaseClient {
 
   @Override
   public boolean isConnected() {
-    return false;
+    return true;
   }
 
   @Override
@@ -67,7 +67,6 @@ public class JSONClient extends DatabaseClient {
       CobbleUtils.LOGGER.warn("Could not load or create account for player with UUID " + uuid);
       return null;
     }
-    DatabaseFactory.CACHE_ACCOUNTS.put(uuid, account);
     return account;
   }
 

@@ -21,8 +21,8 @@ public class Config {
   private static final String FILE_NAME = "config.json";
   private boolean debug;
   private boolean notifications;
-  private boolean aggressiveSave;
-  private boolean useCurrencyDefaultWhenNotFound;
+  private boolean queueMessages;
+  private DurationValue betweenMessagesDelay;
   private String lang;
   private List<String> commands;
   private DataBaseConfig database;
@@ -34,8 +34,8 @@ public class Config {
   public Config() {
     debug = false;
     notifications = true;
-    aggressiveSave = false;
-    useCurrencyDefaultWhenNotFound = false;
+    queueMessages = false;
+    betweenMessagesDelay = DurationValue.parse("1s");
     lang = "en_us";
     commands = List.of("money", "balance", "bal", "eco", "ultraeconomy");
     database = new DataBaseConfig();

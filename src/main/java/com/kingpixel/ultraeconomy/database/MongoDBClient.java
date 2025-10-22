@@ -3,6 +3,7 @@ package com.kingpixel.ultraeconomy.database;
 import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.Model.DataBaseConfig;
 import com.kingpixel.ultraeconomy.UltraEconomy;
+import com.kingpixel.ultraeconomy.api.UltraEconomyApi;
 import com.kingpixel.ultraeconomy.config.Currencies;
 import com.kingpixel.ultraeconomy.models.Account;
 import com.kingpixel.ultraeconomy.models.Currency;
@@ -11,9 +12,11 @@ import com.mongodb.MongoClientSettings;
 import com.mongodb.client.*;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.ReplaceOptions;
+import com.mongodb.client.model.Sorts;
 import com.mongodb.client.model.Updates;
 import net.minecraft.entity.Entity;
 import org.bson.Document;
+import org.bson.UuidRepresentation;
 import org.bson.types.Decimal128;
 
 import java.math.BigDecimal;
@@ -27,9 +30,9 @@ import java.util.concurrent.TimeUnit;
 public class MongoDBClient extends DatabaseClient {
   private static final String TRANSACTIONS_COLLECTION = "transactions";
   private static final String ACCOUNTS_COLLECTION = "accounts";
-  private static final String FIELD_UUID = "uuid";
-  private static final String FIELD_PLAYER_NAME = "player_name";
-  private static final String FIELD_BALANCES = "balances";
+  public static final String FIELD_UUID = "uuid";
+  public static final String FIELD_PLAYER_NAME = "player_name";
+  public static final String FIELD_BALANCES = "balances";
   private static final String FIELD_ACCOUNT_UUID = "account_uuid";
   private static final String FIELD_CURRENCY_ID = "currency_id";
   private static final String FIELD_AMOUNT = "amount";
@@ -50,6 +53,7 @@ public class MongoDBClient extends DatabaseClient {
       mongoClient = MongoClients.create(
         MongoClientSettings.builder()
           .applyConnectionString(new ConnectionString(config.getUrl()))
+          .uuidRepresentation(UuidRepresentation.STANDARD)
           .applicationName("UltraEconomy-MongoDB")
           .build()
       );
@@ -140,7 +144,7 @@ public class MongoDBClient extends DatabaseClient {
     Document doc = accountsCollection.find(Filters.eq(FIELD_UUID, uuid.toString())).first();
     Account account;
     if (doc != null) {
-      account = documentToAccount(doc);
+      account = Account.fromDocument(doc);
     } else {
       var player = CobbleUtils.server.getPlayerManager().getPlayer(uuid);
       if (player != null) {
@@ -151,8 +155,6 @@ public class MongoDBClient extends DatabaseClient {
         return null;
       }
     }
-
-    DatabaseFactory.CACHE_ACCOUNTS.put(uuid, account);
     return account;
   }
 
@@ -171,15 +173,11 @@ public class MongoDBClient extends DatabaseClient {
   }
 
   private void saveAccount(Account account) {
-    Document balances = new Document();
-    account.getBalances().forEach((k, v) -> balances.append(k, new Decimal128(v)));
-    Document doc = new Document(FIELD_UUID, account.getPlayerUUID().toString())
-      .append(FIELD_PLAYER_NAME, account.getPlayerName())
-      .append(FIELD_BALANCES, balances);
+    Document accountDoc = account.toDocument();
 
     accountsCollection.replaceOne(
       Filters.eq(FIELD_UUID, account.getPlayerUUID().toString()),
-      doc,
+      accountDoc,
       new ReplaceOptions().upsert(true)
     );
   }
@@ -187,8 +185,8 @@ public class MongoDBClient extends DatabaseClient {
   private void addTransaction(UUID uuid, Currency currency, BigDecimal amount, TransactionType type, boolean processed) {
     CompletableFuture.runAsync(() -> {
         Document tx = new Document(FIELD_ACCOUNT_UUID, uuid.toString())
-          .append(FIELD_ACCOUNT_UUID, currency.getId())
-          .append(FIELD_AMOUNT, new Decimal128(amount)) // ✅ siempre Decimal128
+          .append(FIELD_CURRENCY_ID, currency.getId())
+          .append(FIELD_AMOUNT, new Decimal128(amount))
           .append(FIELD_TYPE, type.name())
           .append(FIELD_PROCESSED, processed)
           .append("timestamp", Date.from(Instant.now()));
@@ -226,6 +224,10 @@ public class MongoDBClient extends DatabaseClient {
           if (UltraEconomy.config.isDebug()) {
             CobbleUtils.LOGGER.warn("Account not found in cache for transaction: " + tx.toJson());
           }
+          transactionsCollection.updateOne(
+            Filters.eq("_id", tx.getObjectId("_id")),
+            Updates.set(FIELD_PROCESSED, false)
+          );
           continue;
         }
 
@@ -256,9 +258,9 @@ public class MongoDBClient extends DatabaseClient {
         }
 
         switch (type) {
-          case DEPOSIT -> account.addBalance(currency, amount);
-          case WITHDRAW -> account.removeBalance(currency, amount);
-          case SET -> account.setBalance(currency, amount);
+          case DEPOSIT -> UltraEconomyApi.deposit(uuid, currency.getId(), amount);
+          case WITHDRAW -> UltraEconomyApi.withdraw(uuid, currency.getId(), amount);
+          case SET -> UltraEconomyApi.setBalance(uuid, currency.getId(), amount);
           default -> {
             CobbleUtils.LOGGER.error("Unknown transaction type: " + type);
             continue;
@@ -284,8 +286,14 @@ public class MongoDBClient extends DatabaseClient {
     Account account = getCachedAccount(uuid);
     boolean result = true;
     if (account == null) {
+      if (UltraEconomy.config.isDebug()) {
+        CobbleUtils.LOGGER.warn(UltraEconomy.MOD_ID, "Account not found in cache for UUID: " + uuid + ", queuing transaction.");
+      }
       addTransaction(uuid, currency, amount, TransactionType.DEPOSIT, false);
     } else {
+      if (UltraEconomy.config.isDebug()) {
+        CobbleUtils.LOGGER.info(UltraEconomy.MOD_ID, "Account found in cache for UUID: " + uuid + ", adding balance.");
+      }
       result = account.addBalance(currency, amount);
       if (result) addTransaction(uuid, currency, amount, TransactionType.DEPOSIT, true);
     }
@@ -297,8 +305,14 @@ public class MongoDBClient extends DatabaseClient {
     Account account = getCachedAccount(uuid);
     boolean result = true;
     if (account == null) {
+      if (UltraEconomy.config.isDebug()) {
+        CobbleUtils.LOGGER.warn(UltraEconomy.MOD_ID, "Account not found in cache for UUID: " + uuid + ", queuing transaction.");
+      }
       addTransaction(uuid, currency, amount, TransactionType.WITHDRAW, false);
     } else {
+      if (UltraEconomy.config.isDebug()) {
+        CobbleUtils.LOGGER.info(UltraEconomy.MOD_ID, "Account found in cache for UUID: " + uuid + ", removing balance.");
+      }
       result = account.removeBalance(currency, amount);
       addTransaction(uuid, currency, amount, TransactionType.WITHDRAW, true);
     }
@@ -309,8 +323,14 @@ public class MongoDBClient extends DatabaseClient {
   public BigDecimal setBalance(UUID uuid, Currency currency, BigDecimal amount) {
     Account account = getCachedAccount(uuid);
     if (account == null) {
+      if (UltraEconomy.config.isDebug()) {
+        CobbleUtils.LOGGER.warn(UltraEconomy.MOD_ID, "Account not found in cache for UUID: " + uuid + ", queuing transaction.");
+      }
       addTransaction(uuid, currency, amount, TransactionType.SET, false);
     } else {
+      if (UltraEconomy.config.isDebug()) {
+        CobbleUtils.LOGGER.info(UltraEconomy.MOD_ID, "Account found in cache for UUID: " + uuid + ", setting balance.");
+      }
       account.setBalance(currency, amount);
       addTransaction(uuid, currency, amount, TransactionType.SET, true);
     }
@@ -330,25 +350,25 @@ public class MongoDBClient extends DatabaseClient {
   @Override
   public List<Account> getTopBalances(Currency currency, int page, int playersPerPage) {
     List<Account> topAccounts = new ArrayList<>();
-    int skip = (page - 1) * playersPerPage;
+    int skip = Math.max(page - 1, 0) * playersPerPage;
     int index = skip + 1;
 
-    FindIterable<Document> docs = accountsCollection.find()
-      .sort(new Document("balances." + currency, -1)) // ✅ ordena por Decimal128
+    String currencyKey = currency.getId();
+
+    FindIterable<Document> docs = accountsCollection.find(Filters.exists("balances." + currencyKey, true))
+      .sort(Sorts.descending("balances." + currencyKey))
       .skip(skip)
-      .limit(playersPerPage + 1);
+      .limit(playersPerPage + 1); // To know if there's a next page
 
     for (Document doc : docs) {
-      Account account = documentToAccount(doc);
-      account.setRank(index);
-      index++;
+      Account account = Account.fromDocument(doc);
+      account.setRank(index++);
       topAccounts.add(account);
-
-      DatabaseFactory.CACHE_ACCOUNTS.put(account.getPlayerUUID(), account);
     }
 
     return topAccounts;
   }
+
 
   @Override
   public boolean existPlayerWithUUID(UUID uuid) {
@@ -357,43 +377,7 @@ public class MongoDBClient extends DatabaseClient {
   }
 
 
-  public Account documentToAccount(Document doc) {
-    UUID uuid = UUID.fromString(doc.getString(FIELD_UUID));
-    String playerName = doc.getString(FIELD_PLAYER_NAME);
-
-    Map<String, BigDecimal> balances = new HashMap<>();
-    Document balanceDoc = doc.get(FIELD_BALANCES, Document.class);
-
-    if (balanceDoc != null) {
-      for (String key : balanceDoc.keySet()) {
-        Object rawValue = balanceDoc.get(key);
-
-        if (rawValue instanceof Decimal128 dec) {
-          balances.put(key, dec.bigDecimalValue());
-        } else if (rawValue instanceof String str) {
-          try {
-            balances.put(key, new BigDecimal(str));
-          } catch (NumberFormatException e) {
-            CobbleUtils.LOGGER.warn("Invalid balance format for " + key + " in account " + uuid + ": " + str);
-          }
-        }
-      }
-    }
-
-    return new Account(uuid, playerName, balances);
-  }
-
   public Account getCachedAccount(UUID uuid) {
-    var account = DatabaseFactory.CACHE_ACCOUNTS.getIfPresent(uuid);
-    if (account == null) {
-      if (UltraEconomy.config.isDebug()) {
-        CobbleUtils.LOGGER.warn("Account not found in cache for UUID: " + uuid);
-      }
-    } else {
-      if (UltraEconomy.config.isDebug()) {
-        CobbleUtils.LOGGER.info("Account found in cache for UUID: " + uuid);
-      }
-    }
-    return account;
+    return DatabaseFactory.CACHE_ACCOUNTS.getIfPresent(uuid);
   }
 }

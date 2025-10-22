@@ -8,6 +8,7 @@ import com.kingpixel.ultraeconomy.config.Config;
 import com.kingpixel.ultraeconomy.config.Currencies;
 import com.kingpixel.ultraeconomy.config.Lang;
 import com.kingpixel.ultraeconomy.database.DatabaseFactory;
+import com.kingpixel.ultraeconomy.manager.PlayerMessageQueueManager;
 import com.kingpixel.ultraeconomy.models.Account;
 import com.kingpixel.ultraeconomy.placeholders.PlaceHolders;
 import net.fabricmc.api.ModInitializer;
@@ -25,11 +26,10 @@ public class UltraEconomy implements ModInitializer {
   public static MinecraftServer server;
   public static Config config = new Config();
   public static Lang lang = new Lang();
-  public static final ExecutorService ULTRA_ECONOMY_EXECUTOR = Executors.newSingleThreadExecutor(
-    new ThreadFactoryBuilder()
-      .setNameFormat("ultra economy-%d")
-      .setDaemon(true)
-      .build()
+  public static final ExecutorService ULTRA_ECONOMY_EXECUTOR = Executors.newFixedThreadPool(4, new ThreadFactoryBuilder()
+    .setNameFormat("ultra economy-executor-%d")
+    .setDaemon(true)
+    .build()
   );
   public static final ScheduledExecutorService ULTRA_ECONOMY_SCHEDULER = Executors.newScheduledThreadPool(1,
     new ThreadFactoryBuilder()
@@ -45,10 +45,10 @@ public class UltraEconomy implements ModInitializer {
     if (!folder.exists()) {
       folder.mkdirs();
     }
-    PlaceHolders.register();
     load();
     events();
     tasks();
+    PlaceHolders.register();
   }
 
   public static void load() {
@@ -62,6 +62,7 @@ public class UltraEconomy implements ModInitializer {
     ServerPlayerEvents.JOIN.register((player) -> {
       CompletableFuture.runAsync(() -> {
           Account account = DatabaseFactory.INSTANCE.getAccount(player.getUuid());
+          DatabaseFactory.CACHE_ACCOUNTS.put(player.getUuid(), account);
           account.fix();
           DatabaseFactory.INSTANCE.saveOrUpdateAccount(account);
         }, ULTRA_ECONOMY_EXECUTOR)
@@ -85,6 +86,7 @@ public class UltraEconomy implements ModInitializer {
       DatabaseFactory.INSTANCE.flushCache();
       DatabaseFactory.INSTANCE.disconnect();
       CobbleUtils.shutdownAndAwait(ULTRA_ECONOMY_EXECUTOR);
+      CobbleUtils.shutdownAndAwait(PlayerMessageQueueManager.SCHEDULER);
     });
 
     CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> Register.register(dispatcher));
