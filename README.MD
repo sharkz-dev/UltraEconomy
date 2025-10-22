@@ -81,6 +81,10 @@ UltraEconomyApi.setBalance(playerId, "coins", new BigDecimal("200.0"));
 // Transfer between players
 UltraEconomyApi.transfer(playerId, targetId, "coins", new BigDecimal("25.0"));
 
+// Format currency
+Currency currency = UltraEconomyApi.getCurrency("coins");
+String formatted = currency.format(new BigDecimal("1234.56")); Or currency.format(new BigDecimal("1234.56"), UltraEconomyApi.getLocale(playerId));
+
 // Check if the player has enough balance
 boolean hasEnough = UltraEconomyApi.hasEnoughBalance(playerId, "coins", new BigDecimal("150.0"));
 ```
