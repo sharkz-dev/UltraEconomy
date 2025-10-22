@@ -47,6 +47,14 @@ public class UltraEconomyApi {
     return profile.map(gameProfile -> getAccount(gameProfile.getId())).orElse(null);
   }
 
+  /**
+   * Withdraw an amount from a target's account
+   *
+   * @param uuid     the target's UUID
+   * @param currency the currency
+   * @param amount   the amount
+   * @return true if successful, false otherwise
+   */
   public static boolean withdraw(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
     long start = System.currentTimeMillis();
     Currency c = getCurrency(currency);
@@ -64,6 +72,11 @@ public class UltraEconomyApi {
     return result;
   }
 
+  /**
+   * Aggressively save an account if the config is set to do so
+   *
+   * @param playerUUID the player's UUID
+   */
   private static void aggressiveSave(UUID playerUUID) {
     if (UltraEconomy.config.isAggressiveSave()) {
       var account = DatabaseFactory.CACHE_ACCOUNTS.getIfPresent(playerUUID);
@@ -168,7 +181,15 @@ public class UltraEconomyApi {
     return result;
   }
 
-
+  /**
+   * Transfer an amount from an executor to a target
+   *
+   * @param executor the executor's UUID
+   * @param target   the target's UUID
+   * @param currency the currency
+   * @param amount   the amount
+   * @return true if successful, false otherwise
+   */
   public static boolean transfer(UUID executor, UUID target, String currency, BigDecimal amount) {
     long start = System.currentTimeMillis();
     Currency curr = getCurrency(currency);
@@ -244,6 +265,11 @@ public class UltraEconomyApi {
     }
   }
 
+  /**
+   * Save an account to the database synchronously (This is done automatically when modifying the account)
+   *
+   * @param account the account
+   */
   public static void saveAccountSync(Account account) {
     long start = System.currentTimeMillis();
     DatabaseFactory.INSTANCE.saveOrUpdateAccountSync(account);
@@ -253,14 +279,27 @@ public class UltraEconomyApi {
     }
   }
 
+  /**
+   * Get the locale of a player by UUID
+   *
+   * @param playerUUID the player's UUID
+   * @return the locale
+   */
   public static Locale getLocale(UUID playerUUID) {
     return getLocale(UltraEconomy.server.getPlayerManager().getPlayer(playerUUID));
   }
+
 
   private static final Cache<String, Locale> localeCache = Caffeine.newBuilder()
     .maximumSize(100)
     .build();
 
+  /**
+   * Get the locale of a player
+   *
+   * @param player the player
+   * @return the locale
+   */
   public static Locale getLocale(ServerPlayerEntity player) {
     // Locale del servidor como fallback
     Locale serverLocale = Locale.US; // ajusta según tu implementación
@@ -299,7 +338,12 @@ public class UltraEconomyApi {
 
   }
 
-
+  /**
+   * Check if a player exists with the given name
+   *
+   * @param target the player's name
+   * @return true if the player exists, false otherwise
+   */
   public static boolean existsPlayerWithName(String target) {
     return DatabaseFactory.INSTANCE.existPlayerWithName(target);
   }
