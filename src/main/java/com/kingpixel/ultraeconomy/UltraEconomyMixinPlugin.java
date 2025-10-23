@@ -28,7 +28,13 @@ public class UltraEconomyMixinPlugin implements IMixinConfigPlugin {
     if (UserCacheMixin.class.getName().equals(targetClassName)) {
       return true;
     }
-    return FabricLoader.getInstance().isModLoaded("impactor") && mixinClassName.contains("Impactor");
+    if (FabricLoader.getInstance().isModLoaded("impactor") && mixinClassName.contains("Impactor")) {
+      return true;
+    }
+    if (FabricLoader.getInstance().isModLoaded("beconomy") && mixinClassName.contains("Beconomy") || mixinClassName.contains("BlanketEconomyAPI")) {
+      return true;
+    }
+    return false;
   }
 
   @Override
