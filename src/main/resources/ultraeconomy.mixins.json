@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "UserCacheMixin",
+    "beconomy.BeconomyServiceMixin",
     "impactor.ImpactorAccountMixin",
     "impactor.ImpactorCurrencyMixin"
   ],

@@ -20,6 +20,7 @@ for high performance and flexibility.
 
 - 🏦 **Overwrite existing economy systems**  
   Fully compatible with other economy mods or plugins, allowing complete replacement.
+    - Impactor 
 
 - 💱 **Multi-currency support**  
   Define and configure currencies in `config/ultraeconomy/currencies/`.
@@ -50,6 +51,7 @@ for high performance and flexibility.
 
 - 🪛 **Debug mode**  
   Detailed logs and execution timing for performance tracking.
+
 - 🗃️ **Transaction logging**
   Comprehensive logs of all transactions for auditing and tracking.
 
@@ -74,33 +76,20 @@ UUID playerId = player.getUuid();
 BigDecimal balance = UltraEconomyApi.getBalance(playerId, "coins");
 
 // Deposit money
-UltraEconomyApi.
-
-deposit(playerId, "coins",new BigDecimal("100.0"));
+UltraEconomyApi.deposit(playerId, "coins",new BigDecimal("100.0"));
 
 // Withdraw money
-  UltraEconomyApi.
-
-withdraw(playerId, "coins",new BigDecimal("50.0"));
+UltraEconomyApi.withdraw(playerId, "coins",new BigDecimal("50.0"));
 
 // Set balance
-  UltraEconomyApi.
-
-setBalance(playerId, "coins",new BigDecimal("200.0"));
+UltraEconomyApi.setBalance(playerId, "coins",new BigDecimal("200.0"));
 
 // Transfer between players
-  UltraEconomyApi.
-
-transfer(playerId, targetId, "coins",new BigDecimal("25.0"));
+UltraEconomyApi.transfer(playerId, targetId, "coins",new BigDecimal("25.0"));
 
 // Format currency
 Currency currency = UltraEconomyApi.getCurrency("coins");
-String formatted = currency.format(new BigDecimal("1234.56"));
-Or currency.
-
-format(new BigDecimal("1234.56"),UltraEconomyApi.
-
-getLocale(playerId));
+String formatted = currency.format(new BigDecimal("1234.56")); Or currency.format(new BigDecimal("1234.56"),UltraEconomyApi.getLocale(playerId));
 
 // Check if the player has enough balance
 boolean hasEnough = UltraEconomyApi.hasEnoughBalance(playerId, "coins", new BigDecimal("150.0"));
