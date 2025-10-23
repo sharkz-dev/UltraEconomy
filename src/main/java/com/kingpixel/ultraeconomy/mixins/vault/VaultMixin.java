@@ -20,13 +20,17 @@ public abstract class VaultMixin {
 
   @Inject(method = "depositPlayer(Lorg/bukkit/OfflinePlayer;D)Lnet/milkbowl/vault/economy/EconomyResponse;", at = @At("HEAD"), remap = false)
   private void onDeposit(OfflinePlayer player, double amount, CallbackInfoReturnable<?> cir) {
-    double balance = UltraEconomyApi.getBalance(player.getUniqueId(), "").doubleValue();
+    var bigDecimal = UltraEconomyApi.getBalance(player.getUniqueId(), "");
+    if (bigDecimal == null) return;
+    double balance = bigDecimal.doubleValue();
     UltraEconomyApi.setBalance(player.getUniqueId(), "", BigDecimal.valueOf(balance + amount));
   }
 
   @Inject(method = "withdrawPlayer(Lorg/bukkit/OfflinePlayer;D)Lnet/milkbowl/vault/economy/EconomyResponse;", at = @At("HEAD"), remap = false)
   private void onWithdraw(OfflinePlayer player, double amount, CallbackInfoReturnable<?> cir) {
-    double balance = UltraEconomyApi.getBalance(player.getUniqueId(), "").doubleValue();
+    var bigDecimal = UltraEconomyApi.getBalance(player.getUniqueId(), "");
+    if (bigDecimal == null) return;
+    double balance = bigDecimal.doubleValue();
     UltraEconomyApi.setBalance(player.getUniqueId(), "", BigDecimal.valueOf(balance - amount));
   }
 }
