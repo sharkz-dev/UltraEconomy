@@ -13,10 +13,13 @@ import java.util.List;
 
 @Data
 public class VaultService {
+  public static Economy service;
+  private static Boolean present;
 
   public static boolean isPresent() {
+    if (present != null) return present;
+    present = false;
     try {
-      Economy service;
       if (Bukkit.getServer().getPluginManager().getPlugin("Vault") == null) {
         CobbleUtils.LOGGER.info("Cannot find Vault!");
         List<String> plugins = new ArrayList<>();
@@ -32,14 +35,19 @@ public class VaultService {
           service = rsp.getProvider();
           CobbleUtils.LOGGER.info("Economy successfully hooked up");
           CobbleUtils.LOGGER.info("Economy: " + service.getName());
-          return true;
+          present = true;
         }
       }
-      return false;
     } catch (Exception | NoClassDefFoundError | NoSuchMethodError e) {
       CobbleUtils.LOGGER.info(UltraEconomy.MOD_ID, "This error can be ignored if you are not using Vault:");
       e.printStackTrace();
-      return false;
     }
+    return present;
+  }
+
+  public static Economy getEconomy() {
+    RegisteredServiceProvider<Economy> rsp = Bukkit.getServer().getServicesManager().getRegistration(Economy.class);
+    if (rsp == null) return null;
+    return rsp.getProvider();
   }
 }
