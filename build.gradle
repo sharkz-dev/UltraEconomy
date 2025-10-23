@@ -74,7 +74,9 @@ dependencies {
     // Economy APIs
     modImplementation("net.impactdev.impactor.api:economy:${property("impactor_version")}")
     modImplementation("net.impactdev.impactor:common:${property("impactor_version")}")
-
+    api("org.spigotmc:spigot-api:${property("spigot_version")}")
+    api("com.github.MilkBowl:VaultAPI:${property("vault_api_version")}")
+    
     // Placeholder API
     modImplementation("eu.pb4:placeholder-api:${property("placeholder_api_version_fabricandforge")}")
 

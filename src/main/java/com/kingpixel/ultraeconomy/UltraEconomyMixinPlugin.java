@@ -1,7 +1,10 @@
 package com.kingpixel.ultraeconomy;
 
+import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.ultraeconomy.mixins.UserCacheMixin;
+import com.kingpixel.ultraeconomy.models.VaultService;
 import net.fabricmc.loader.api.FabricLoader;
+import net.milkbowl.vault.economy.Economy;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
@@ -13,6 +16,8 @@ import java.util.Set;
  * @author Carlos Varas Alonso - 28/09/2025 4:37
  */
 public class UltraEconomyMixinPlugin implements IMixinConfigPlugin {
+  public static
+
   @Override
   public void onLoad(String mixinPackage) {
     // This is not needed for now
@@ -34,8 +39,17 @@ public class UltraEconomyMixinPlugin implements IMixinConfigPlugin {
     if (FabricLoader.getInstance().isModLoaded("beconomy") && mixinClassName.contains("Beconomy") || mixinClassName.contains("BlanketEconomyAPI")) {
       return true;
     }
+    if (VaultService.isPresent() && mixinClassName.contains("Vault")) {
+      Economy economy = VaultService.service;
+      if (economy != null && economy.getName().equals("UltraEconomy")) {
+        CobbleUtils.LOGGER.info("Applying Vault mixins for UltraEconomy");
+        return true;
+      }
+    }
+
     return false;
   }
+
 
   @Override
   public void acceptTargets(Set<String> myTargets, Set<String> otherTargets) {
