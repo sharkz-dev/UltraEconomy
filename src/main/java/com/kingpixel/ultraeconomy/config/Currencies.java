@@ -29,6 +29,7 @@ public class Currencies {
         "impactor:dollars"
       });
       currency.setId("dollars");
+      currency.fix();
       CURRENCY_MAP.put(currency.getId(), currency);
       writeCurrency(currency);
       Currency currency2 = new Currency(false, (byte) 2, "t", new String[]{
@@ -43,6 +44,7 @@ public class Currencies {
           var currency = Utils.newGson().fromJson(
             Utils.readFileSync(file), Currency.class
           );
+          currency.fix();
           currency.setId(file.getName().replace(".json", ""));
           CURRENCY_MAP.put(currency.getId(), currency);
           writeCurrency(currency);

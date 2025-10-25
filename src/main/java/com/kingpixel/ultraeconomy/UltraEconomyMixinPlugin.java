@@ -39,7 +39,7 @@ public class UltraEconomyMixinPlugin implements IMixinConfigPlugin {
     if (VaultService.isPresent() && mixinClassName.contains("Vault")) {
       return true;
     }
-    return false;
+    return true;
   }
 
 

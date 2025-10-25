@@ -27,8 +27,8 @@ import java.util.concurrent.TimeUnit;
 
 @Data
 public class Currency {
-  transient
-  private String id;
+
+  private transient String id;
   private boolean primary;
   private boolean transferable;
   private BigDecimal defaultBalance;
@@ -67,13 +67,44 @@ public class Currency {
   }
 
   public Currency(boolean primary, byte decimals, String symbol, String[] currencyIds) {
-    super();
+    this.format = "<symbol>&6<amount> <name>";
+    this.singular = "Dollar";
+    this.plural = "Dollars";
+    this.suffixes = new String[]{"", "K", "M", "B", "T"};
+    this.currencyIds = new String[]{};
     this.primary = primary;
     this.transferable = true;
     this.decimals = decimals;
     this.defaultBalance = BigDecimal.ZERO;
     this.symbol = symbol;
     this.currencyIds = currencyIds;
+  }
+
+  public void fix() {
+    if (this.format == null || this.format.isEmpty()) {
+      this.format = "<symbol>&6<amount> <name>";
+    }
+    if (this.singular == null || this.singular.isEmpty()) {
+      this.singular = "Dollar";
+    }
+    if (this.plural == null || this.plural.isEmpty()) {
+      this.plural = "Dollars";
+    }
+    if (this.suffixes == null || this.suffixes.length == 0) {
+      this.suffixes = new String[]{"", "K", "M", "B", "T"};
+    }
+    if (this.decimals < 0) {
+      this.decimals = 2;
+    }
+    if (this.defaultBalance == null) {
+      this.defaultBalance = BigDecimal.ZERO;
+    }
+    if (this.symbol == null) {
+      this.symbol = "$";
+    }
+    if (this.currencyIds == null) {
+      this.currencyIds = new String[]{};
+    }
   }
 
   /**
@@ -85,7 +116,6 @@ public class Currency {
     formatTextCache = new ConcurrentHashMap<>();
     formatSimpleTextCache = new ConcurrentHashMap<>();
     formatAmountTextCache = new ConcurrentHashMap<>();
-
   }
 
   // ================== FORMAT STRING CACHES ==================
