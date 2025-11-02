@@ -1,7 +1,6 @@
 package com.kingpixel.ultraeconomy;
 
 import com.kingpixel.ultraeconomy.mixins.UserCacheMixin;
-import com.kingpixel.ultraeconomy.models.VaultService;
 import net.fabricmc.loader.api.FabricLoader;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
@@ -27,19 +26,21 @@ public class UltraEconomyMixinPlugin implements IMixinConfigPlugin {
 
   @Override
   public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-    if (UserCacheMixin.class.getName().equals(targetClassName)) {
+    try {
+      if (UserCacheMixin.class.getName().equals(targetClassName)) {
+        return true;
+      }
+      if (FabricLoader.getInstance().isModLoaded("impactor") && mixinClassName.contains("Impactor")) {
+        return true;
+      }
+      if (FabricLoader.getInstance().isModLoaded("beconomy") && mixinClassName.contains("Beconomy") || mixinClassName.contains("BlanketEconomyAPI")) {
+        return true;
+      }
       return true;
+    } catch (Exception e) {
+      e.printStackTrace();
+      return false;
     }
-    if (FabricLoader.getInstance().isModLoaded("impactor") && mixinClassName.contains("Impactor")) {
-      return true;
-    }
-    if (FabricLoader.getInstance().isModLoaded("beconomy") && mixinClassName.contains("Beconomy") || mixinClassName.contains("BlanketEconomyAPI")) {
-      return true;
-    }
-    if (VaultService.isPresent() && mixinClassName.contains("Vault")) {
-      return true;
-    }
-    return true;
   }
 
 

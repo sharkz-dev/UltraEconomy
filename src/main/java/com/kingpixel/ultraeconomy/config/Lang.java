@@ -102,7 +102,7 @@ public class Lang {
       Utils.writeFileAsync(PATH, filename, data);
     });
     if (Boolean.FALSE.equals(futureRead.join())) {
-      CobbleUtils.LOGGER.info("Creating new config file at " + PATH + "/" + filename);
+      CobbleUtils.LOGGER.info("Creating new language file at " + Utils.getAbsolutePath(PATH + filename).getAbsolutePath());
       Gson gson = Utils.newGson();
       UltraEconomy.lang = this;
       String data = gson.toJson(UltraEconomy.lang);

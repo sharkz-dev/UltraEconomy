@@ -7,8 +7,7 @@
     "UserCacheMixin",
     "beconomy.BeconomyServiceMixin",
     "impactor.ImpactorAccountMixin",
-    "impactor.ImpactorCurrencyMixin",
-    "vault.VaultMixin"
+    "impactor.ImpactorCurrencyMixin"
   ],
   "plugin": "com.kingpixel.ultraeconomy.UltraEconomyMixinPlugin",
   "injectors": {

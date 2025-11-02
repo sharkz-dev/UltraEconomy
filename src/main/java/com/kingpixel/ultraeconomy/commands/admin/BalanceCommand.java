@@ -85,20 +85,8 @@ public class BalanceCommand {
           return;
         }
 
-        var account = UltraEconomyApi.getAccount(targetUUID);
-        if (account == null) {
-          source.sendError(Text.literal("§cAccount not found"));
-          return;
-        }
-
         var currency = Currencies.getCurrency(currencyId);
-        if (currency == null) {
-          source.sendMessage(Text.literal("§cCurrency not found: " + currencyId + ". Available: " + String.join(", ",
-            Currencies.CURRENCY_IDS)));
-          return;
-        }
-
-        var balance = account.getBalance(currency);
+        var balance = UltraEconomyApi.getBalance(targetUUID, currencyId);
         if (balance == null) {
           source.sendError(Text.literal("§cBalance not found"));
           return;

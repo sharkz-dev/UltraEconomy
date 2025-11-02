@@ -96,6 +96,6 @@ public class UltraEconomy implements ModInitializer {
     // Aquí puedes agregar tareas programadas si es necesario
     ULTRA_ECONOMY_SCHEDULER.scheduleAtFixedRate(() -> {
       DatabaseFactory.CACHE_ACCOUNTS.asMap().values().forEach(account -> DatabaseFactory.INSTANCE.saveOrUpdateAccount(account));
-    }, 0, 30, TimeUnit.SECONDS);
+    }, 60, 30, TimeUnit.SECONDS);
   }
 }

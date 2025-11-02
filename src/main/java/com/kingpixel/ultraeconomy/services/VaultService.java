@@ -1,4 +1,4 @@
-package com.kingpixel.ultraeconomy.models;
+package com.kingpixel.ultraeconomy.services;
 
 import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.ultraeconomy.UltraEconomy;
@@ -7,9 +7,12 @@ import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
+import org.jetbrains.annotations.NotNull;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 public class VaultService {
@@ -45,9 +48,32 @@ public class VaultService {
     return present;
   }
 
-  public static Economy getEconomy() {
-    RegisteredServiceProvider<Economy> rsp = Bukkit.getServer().getServicesManager().getRegistration(Economy.class);
-    if (rsp == null) return null;
-    return rsp.getProvider();
+  public static BigDecimal getBalance(@NotNull UUID uuid, @NotNull String currency) {
+    if (service == null) return BigDecimal.ZERO;
+    double balance = service.getBalance(Bukkit.getOfflinePlayer(uuid));
+    return BigDecimal.valueOf(balance);
+  }
+
+  public static void setBalance(@NotNull UUID uuid, @NotNull String currency, BigDecimal amount) {
+    if (service == null) return;
+    double currentBalance = service.getBalance(Bukkit.getOfflinePlayer(uuid));
+    double targetBalance = amount.doubleValue();
+    double difference = targetBalance - currentBalance;
+    if (difference > 0) {
+      service.depositPlayer(Bukkit.getOfflinePlayer(uuid), difference);
+    } else if (difference < 0) {
+      service.withdrawPlayer(Bukkit.getOfflinePlayer(uuid), -difference);
+    }
+    
+  }
+
+  public static void deposit(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
+    if (service == null) return;
+    service.depositPlayer(Bukkit.getOfflinePlayer(uuid), amount.doubleValue());
+  }
+
+  public static void withdraw(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
+    if (service == null) return;
+    service.withdrawPlayer(Bukkit.getOfflinePlayer(uuid), amount.doubleValue());
   }
 }

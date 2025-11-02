@@ -12,6 +12,7 @@ import com.kingpixel.ultraeconomy.manager.PlayerMessageQueueManager;
 import com.kingpixel.ultraeconomy.models.Account;
 import com.kingpixel.ultraeconomy.models.Currency;
 import com.kingpixel.ultraeconomy.placeholders.PlaceHoldersPrefix;
+import com.kingpixel.ultraeconomy.services.VaultService;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.UserCache;
 import org.jetbrains.annotations.NotNull;
@@ -29,6 +30,7 @@ public class UltraEconomyApi {
    * Get the account of a target by UUID
    *
    * @param playerUUID the target's UUID
+   *
    * @return the account
    */
   public static Account getAccount(@NotNull UUID playerUUID) {
@@ -39,6 +41,7 @@ public class UltraEconomyApi {
    * Get the account of a target by name
    *
    * @param playerName the target's name
+   *
    * @return the account
    */
   public static Account getAccount(@NotNull String playerName) {
@@ -50,6 +53,11 @@ public class UltraEconomyApi {
 
   public static boolean withdraw(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
     long start = System.currentTimeMillis();
+    if (VaultService.isPresent() && isPrimaryCurrency(currency)) {
+      VaultService.withdraw(uuid, currency, amount);
+      DatabaseFactory.INSTANCE.setBalance(uuid, getCurrency(currency), VaultService.getBalance(uuid, currency));
+      return true;
+    }
     Currency c = getCurrency(currency);
     boolean result = DatabaseFactory.INSTANCE.withdraw(uuid, c, amount);
     if (UltraEconomy.config.isNotifications()) {
@@ -62,6 +70,7 @@ public class UltraEconomyApi {
     if (UltraEconomy.config.isDebug()) {
       CobbleUtils.LOGGER.info(UltraEconomy.MOD_ID, "Withdraw took " + (end - start) + "ms");
     }
+
     return result;
   }
 
@@ -74,6 +83,7 @@ public class UltraEconomyApi {
    * Get a currency by its ID
    *
    * @param currency the currency ID
+   *
    * @return the currency
    */
   public static Currency getCurrency(String currency) throws UnknownCurrencyException {
@@ -95,10 +105,16 @@ public class UltraEconomyApi {
    * @param uuid     the target's UUID
    * @param currency the currency
    * @param amount   the amount
+   *
    * @return true if successful, false otherwise
    */
   public static boolean deposit(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
     long start = System.currentTimeMillis();
+    if (VaultService.isPresent() && isPrimaryCurrency(currency)) {
+      VaultService.deposit(uuid, currency, amount);
+      DatabaseFactory.INSTANCE.setBalance(uuid, getCurrency(currency), VaultService.getBalance(uuid, currency));
+      return true;
+    }
     Currency c = getCurrency(currency);
     boolean result = DatabaseFactory.INSTANCE.deposit(uuid, c, amount);
     if (UltraEconomy.config.isNotifications()) {
@@ -124,12 +140,17 @@ public class UltraEconomyApi {
    * @param uuid     the target's UUID
    * @param currency the currency
    * @param amount   the amount
+   *
    * @return the new balance, or null if the currency does not exist
    */
   public static @Nullable BigDecimal setBalance(@NotNull UUID uuid, @NotNull String currency, BigDecimal amount) {
     long start = System.currentTimeMillis();
+    BigDecimal result;
+    if (VaultService.isPresent() && isPrimaryCurrency(currency)) {
+      VaultService.setBalance(uuid, currency, amount);
+    }
     Currency c = getCurrency(currency);
-    BigDecimal result = DatabaseFactory.INSTANCE.setBalance(uuid, c, amount);
+    result = DatabaseFactory.INSTANCE.setBalance(uuid, c, amount);
     if (UltraEconomy.config.isNotifications()) {
       var message = UltraEconomy.lang.getMessageSetBalance();
       runMessage(
@@ -140,6 +161,7 @@ public class UltraEconomyApi {
       );
     }
     aggressiveSave(uuid);
+
     long end = System.currentTimeMillis();
     if (UltraEconomy.config.isDebug()) {
       CobbleUtils.LOGGER.info(UltraEconomy.MOD_ID, "Get balance took " + (end - start) + "ms");
@@ -152,11 +174,21 @@ public class UltraEconomyApi {
    *
    * @param uuid     the target's UUID
    * @param currency the currency
+   *
    * @return the balance, or null if the currency does not exist
    */
   public static @Nullable BigDecimal getBalance(@NotNull UUID uuid, @NotNull String currency) {
+    if (VaultService.isPresent() && isPrimaryCurrency(currency)) {
+      return VaultService.getBalance(uuid, currency);
+    } else {
+      Currency c = getCurrency(currency);
+      return DatabaseFactory.INSTANCE.getBalance(uuid, c);
+    }
+  }
+
+  private static boolean isPrimaryCurrency(String currency) {
     Currency c = getCurrency(currency);
-    return DatabaseFactory.INSTANCE.getBalance(uuid, c);
+    return c.equals(getPrimaryCurrency());
   }
 
   /**
@@ -165,12 +197,18 @@ public class UltraEconomyApi {
    * @param uuid     the target's UUID
    * @param currency the currency
    * @param amount   the amount
+   *
    * @return true if the target has enough balance
    */
   public static boolean hasEnoughBalance(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
     long start = System.currentTimeMillis();
     Currency c = getCurrency(currency);
-    var result = DatabaseFactory.INSTANCE.hasEnoughBalance(uuid, c, amount);
+    boolean result;
+    if (VaultService.isPresent() && isPrimaryCurrency(currency)) {
+      result = VaultService.getBalance(uuid, currency).compareTo(amount) >= 0;
+    } else {
+      result = DatabaseFactory.INSTANCE.hasEnoughBalance(uuid, c, amount);
+    }
     if (UltraEconomy.config.isNotifications() && !result) {
       var message = UltraEconomy.lang.getMessageNoMoney();
       runMessage(
@@ -226,7 +264,6 @@ public class UltraEconomyApi {
       return false;
     }
     if (UltraEconomy.config.isNotifications()) {
-
       var messageSender = UltraEconomy.lang.getMessagePaySuccessSender();
       runMessage(
         executor,

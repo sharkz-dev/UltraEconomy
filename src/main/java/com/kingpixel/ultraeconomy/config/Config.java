@@ -55,7 +55,7 @@ public class Config {
       Utils.writeFileAsync(UltraEconomy.PATH, FILE_NAME, data);
     });
     if (Boolean.FALSE.equals(futureRead.join())) {
-      CobbleUtils.LOGGER.info("Creating new config file at " + UltraEconomy.PATH + "/" + FILE_NAME);
+      CobbleUtils.LOGGER.info("Creating new config file at " + Utils.getAbsolutePath(UltraEconomy.PATH + "/" + FILE_NAME).getAbsolutePath());
       Gson gson = Utils.newGson();
       UltraEconomy.config = this;
       String data = gson.toJson(UltraEconomy.config);
