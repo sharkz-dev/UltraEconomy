@@ -53,13 +53,14 @@ public class UltraEconomyApi {
 
   public static boolean withdraw(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
     long start = System.currentTimeMillis();
-    if (VaultService.isPresent() && isPrimaryCurrency(currency)) {
-      VaultService.withdraw(uuid, currency, amount);
-      DatabaseFactory.INSTANCE.setBalance(uuid, getCurrency(currency), VaultService.getBalance(uuid, currency));
-      return true;
-    }
+    boolean result;
     Currency c = getCurrency(currency);
-    boolean result = DatabaseFactory.INSTANCE.withdraw(uuid, c, amount);
+    if (VaultService.isPresent() && isPrimaryCurrency(currency)) {
+      result = VaultService.withdraw(uuid, currency, amount);
+      DatabaseFactory.INSTANCE.setBalance(uuid, c, VaultService.getBalance(uuid, currency));
+      return result;
+    }
+    result = DatabaseFactory.INSTANCE.withdraw(uuid, c, amount);
     if (UltraEconomy.config.isNotifications()) {
       var message = UltraEconomy.lang.getMessageWithdraw();
       message.sendMessage(uuid, UltraEconomy.lang.getPrefix(), false, false, null,
@@ -110,13 +111,14 @@ public class UltraEconomyApi {
    */
   public static boolean deposit(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
     long start = System.currentTimeMillis();
-    if (VaultService.isPresent() && isPrimaryCurrency(currency)) {
-      VaultService.deposit(uuid, currency, amount);
-      DatabaseFactory.INSTANCE.setBalance(uuid, getCurrency(currency), VaultService.getBalance(uuid, currency));
-      return true;
-    }
+    boolean result;
     Currency c = getCurrency(currency);
-    boolean result = DatabaseFactory.INSTANCE.deposit(uuid, c, amount);
+    if (VaultService.isPresent() && isPrimaryCurrency(currency)) {
+      result = VaultService.deposit(uuid, currency, amount);
+      DatabaseFactory.INSTANCE.setBalance(uuid, c, VaultService.getBalance(uuid, currency));
+      return result;
+    }
+    result = DatabaseFactory.INSTANCE.deposit(uuid, c, amount);
     if (UltraEconomy.config.isNotifications()) {
       var message = UltraEconomy.lang.getMessageDeposit();
       runMessage(
@@ -205,7 +207,7 @@ public class UltraEconomyApi {
     Currency c = getCurrency(currency);
     boolean result;
     if (VaultService.isPresent() && isPrimaryCurrency(currency)) {
-      result = VaultService.getBalance(uuid, currency).compareTo(amount) >= 0;
+      result = VaultService.hashEnoughBalance(uuid, currency, amount);
     } else {
       result = DatabaseFactory.INSTANCE.hasEnoughBalance(uuid, c, amount);
     }

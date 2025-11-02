@@ -60,20 +60,24 @@ public class VaultService {
     double targetBalance = amount.doubleValue();
     double difference = targetBalance - currentBalance;
     if (difference > 0) {
-      service.depositPlayer(Bukkit.getOfflinePlayer(uuid), difference);
+      deposit(uuid, currency, BigDecimal.valueOf(difference));
     } else if (difference < 0) {
-      service.withdrawPlayer(Bukkit.getOfflinePlayer(uuid), -difference);
+      withdraw(uuid, currency, BigDecimal.valueOf(-difference));
     }
-    
   }
 
-  public static void deposit(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
-    if (service == null) return;
-    service.depositPlayer(Bukkit.getOfflinePlayer(uuid), amount.doubleValue());
+  public static boolean deposit(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
+    if (service == null) return false;
+    return service.depositPlayer(Bukkit.getOfflinePlayer(uuid), amount.doubleValue()).transactionSuccess();
   }
 
-  public static void withdraw(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
-    if (service == null) return;
-    service.withdrawPlayer(Bukkit.getOfflinePlayer(uuid), amount.doubleValue());
+  public static boolean withdraw(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
+    if (service == null) return false;
+    return service.withdrawPlayer(Bukkit.getOfflinePlayer(uuid), amount.doubleValue()).transactionSuccess();
+  }
+
+  public static boolean hashEnoughBalance(@NotNull UUID uuid, @NotNull String currency, @NotNull BigDecimal amount) {
+    if (service == null) return false;
+    return service.has(Bukkit.getOfflinePlayer(uuid), amount.doubleValue());
   }
 }
