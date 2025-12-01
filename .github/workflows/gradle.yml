@@ -130,6 +130,7 @@ jobs:
             echo "TAG=$(jq -r .release.tag_name < $GITHUB_EVENT_PATH)" >> $GITHUB_ENV
           else
             echo "TAG=manual-${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
+          fi
 
       - name: Download built JAR from build job
         uses: actions/download-artifact@v4
