@@ -1,4 +1,4 @@
-name: Java CI with Gradle and Modrinth Release
+name: Java CI with Gradle + Modrinth Release
 
 on:
   push:
@@ -100,12 +100,15 @@ jobs:
       - name: Publish Release Assets
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_name }}  # crea automáticamente el release si no existe
           files: ./artifacts/*.jar
+          release_name: Release ${{ github.ref_name }}
+          body: "Automated release for version ${{ github.ref_name }}"
 
   modrinth:
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release' || github.event_name == 'workflow_dispatch'
     permissions:
       contents: read
 
@@ -122,14 +125,18 @@ jobs:
       - name: Grant execute permission
         run: chmod +x ./gradlew
 
-      - name: Set TAG variable
+      - name: Set MODRINTH_VERSION from gradle.properties
         run: |
-          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
-            echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-          elif [ "${GITHUB_EVENT_NAME}" = "release" ]; then
-            echo "TAG=$(jq -r .release.tag_name < $GITHUB_EVENT_PATH)" >> $GITHUB_ENV
-          else
-            echo "TAG=manual-${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
+          MODRINTH_VERSION=$(grep -E '^mod_version=' gradle.properties | cut -d'=' -f2)
+          echo "MODRINTH_VERSION=$MODRINTH_VERSION" >> $GITHUB_ENV
+
+      - name: Check if version exists on Modrinth
+        run: |
+          PROJECT_ID="tu_project_id_aqui"
+          EXISTS=$(curl -s "https://api.modrinth.com/v2/project/$PROJECT_ID/version" | jq -r ".[] | select(.version_number==\"${MODRINTH_VERSION}\") | .version_number")
+          if [ -n "$EXISTS" ]; then
+            echo "Version ${MODRINTH_VERSION} already exists, skipping upload."
+            exit 0
           fi
 
       - name: Download built JAR from build job
@@ -142,5 +149,5 @@ jobs:
         run: ./gradlew modrinth
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
-          MODRINTH_VERSION: ${{ env.TAG }}
+          MODRINTH_VERSION: ${{ env.MODRINTH_VERSION }}
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
