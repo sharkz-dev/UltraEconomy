@@ -10,6 +10,10 @@ on:
   release:
     types: [ created ]
 
+env:
+  MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+  DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -51,35 +55,6 @@ jobs:
           name: UltraEconomy
           path: build/libs/*.jar
 
-  dependency-submission:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Make Gradle Wrapper executable
-        run: chmod +x ./gradlew
-
-      - name: Generate dependency graph
-        run: ./gradlew dependencies --no-daemon
-
-      - name: Submit dependency graph
-        uses: gradle/actions/dependency-submission@v4
-
   release:
     needs: build
     runs-on: ubuntu-latest
@@ -97,17 +72,15 @@ jobs:
           name: UltraEconomy
           path: ./artifacts
 
-      - name: Publish Release Assets
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}  # crea automáticamente el release si no existe
-          files: ./artifacts/*.jar
-          release_name: Release ${{ github.ref_name }}
-          body: "Automated release for version ${{ github.ref_name }}"
-      - name: Send JAR to Discord
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+      - name: Publish Release Assets (excluyendo -sources.jar)
         run: |
-          FILE_PATH="./artifacts/UltraEconomy.jar"
+          FILES=$(ls ./artifacts/*.jar | grep -v "sources")
+          gh release upload ${{ github.ref_name }} $FILES --repo ${{ github.repository }}
+          echo "Release assets uploaded: $FILES"
+
+      - name: Send JAR to Discord (solo .jar principal)
+        run: |
+          FILE_PATH=$(ls ./artifacts/*.jar | grep -v "sources")
           curl -F "payload_json={\"content\": \"New release: ${{ github.ref_name }}\"}" \
                -F "file=@${FILE_PATH}" \
                ${{ secrets.DISCORD_WEBHOOK_URL }}
@@ -139,7 +112,7 @@ jobs:
 
       - name: Check if version exists on Modrinth
         run: |
-          PROJECT_ID="tu_project_id_aqui"
+          PROJECT_ID="UltraEconomy"
           EXISTS=$(curl -s "https://api.modrinth.com/v2/project/$PROJECT_ID/version" | jq -r ".[] | select(.version_number==\"${MODRINTH_VERSION}\") | .version_number")
           if [ -n "$EXISTS" ]; then
             echo "Version ${MODRINTH_VERSION} already exists, skipping upload."
