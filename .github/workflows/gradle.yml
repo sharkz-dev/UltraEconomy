@@ -2,7 +2,7 @@ name: Java CI with Gradle + Modrinth Release
 
 on:
   push:
-    tags: [ '*' ]  # Solo se ejecuta en push de tag
+    tags: [ '*' ]
 
 env:
   MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
@@ -12,10 +12,9 @@ jobs:
   build_and_release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # Necesario para crear releases
+      contents: write
 
     steps:
-      # --- Checkout y setup ---
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -41,65 +40,47 @@ jobs:
           restore-keys: |
             gradle-${{ runner.os }}-
 
-      # --- Build ---
       - name: Build with Gradle Wrapper
-        run: ./gradlew build --no-daemon
+        run: ./gradlew build remapJar --no-daemon
 
-      # --- Upload local artifact para uso interno ---
       - name: Upload built JAR
         uses: actions/upload-artifact@v4
         with:
           name: UltraEconomy
           path: build/libs/*.jar
 
-      # --- GitHub Release ---
       - name: Create GitHub Release if not exists
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG=${{ github.ref_name }}
           if ! gh release view $TAG --repo ${{ github.repository }} 2>/dev/null; then
-            echo "Creating release $TAG"
             gh release create $TAG --title "Release $TAG" --notes "Automated release for version $TAG" --repo ${{ github.repository }}
-          else
-            echo "Release $TAG already exists"
           fi
 
-      - name: Upload Release Assets (excluyendo -sources.jar)
+      - name: Upload Release Assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           FILE=$(ls build/libs/*.jar | grep -v "sources" | head -n1)
           gh release upload ${{ github.ref_name }} $FILE --repo ${{ github.repository }}
-          echo "Release asset uploaded: $FILE"
 
-      # --- Extraer Changelog completo ---
       - name: Get changelog for current version
         id: changelog
         run: |
           VERSION=${{ github.ref_name }}
-          # Extrae desde la versión hasta la siguiente versión o hasta el final
-          awk -v ver="$VERSION" '
-            $0 ~ "## \\["ver"\\]" {flag=1; next}
-            /^## / && flag {flag=0}
-            flag {print}
-          ' CHANGELOG.md > changelog_current.txt
-          
-          # Escapa para JSON
+          awk -v ver="$VERSION" '$0 ~ "## \\["ver"\\]" {flag=1; next} /^## / && flag {flag=0} flag {print}' CHANGELOG.md > changelog_current.txt
           CHANGES=$(sed 's/"/\\"/g' changelog_current.txt | sed ':a;N;$!ba;s/\n/\\n/g')
           echo "CHANGELOG_CONTENT=$CHANGES" >> $GITHUB_ENV
 
-
-      # --- Enviar a Discord ---
-      - name: Send JAR to Discord (solo .jar principal)
+      - name: Send JAR to Discord
         run: |
           FILE=$(ls build/libs/*.jar | grep -v "sources" | head -n1)
           curl -F "payload_json={\"content\": \"**New release:** ${{ github.ref_name }}\\n\\n**Changes:**\\n${{ env.CHANGELOG_CONTENT }}\"}" \
                -F "file=@${FILE}" \
                ${{ secrets.DISCORD_WEBHOOK_URL }}
 
-      # --- Modrinth ---
-      - name: Set MODRINTH_VERSION from gradle.properties
+      - name: Set MODRINTH_VERSION
         run: |
           MODRINTH_VERSION=$(grep -E '^mod_version=' gradle.properties | cut -d'=' -f2)
           echo "MODRINTH_VERSION=$MODRINTH_VERSION" >> $GITHUB_ENV
@@ -109,7 +90,6 @@ jobs:
           PROJECT_ID="UltraEconomy"
           EXISTS=$(curl -s "https://api.modrinth.com/v2/project/$PROJECT_ID/version" | jq -r ".[] | select(.version_number==\"${MODRINTH_VERSION}\") | .version_number")
           if [ -n "$EXISTS" ]; then
-            echo "Version ${MODRINTH_VERSION} already exists, skipping upload."
             exit 0
           fi
 
