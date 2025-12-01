@@ -73,10 +73,13 @@ jobs:
           path: ./artifacts
 
       - name: Publish Release Assets (excluyendo -sources.jar)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           FILES=$(ls ./artifacts/*.jar | grep -v "sources")
           gh release upload ${{ github.ref_name }} $FILES --repo ${{ github.repository }}
           echo "Release assets uploaded: $FILES"
+
 
       - name: Send JAR to Discord (solo .jar principal)
         run: |
