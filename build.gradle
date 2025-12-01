@@ -29,14 +29,18 @@ fabricApi {
 }
 modrinth {
   token = System.getenv("MODRINTH_TOKEN")
-  projectId = "UltraEconomy" // ejemplo: "fabric-api"
+  projectId = "UltraEconomy"
   versionNumber = project.mod_version
-  versionType = "release" // o beta / alpha
-  uploadFile = remapJar // o el jar final que generes
+  versionType = "release"
+  // Usar el jar ya construido
+  uploadFile = file("$buildDir/libs/UltraEconomy-${project.mod_version}.jar")
   gameVersions = ["1.21.1"]
   loaders = ["fabric"]
   changelog = System.getenv("CHANGELOG") ?: "Automatic upload."
+  // Evitar que dependa de build
+  dependencies {}
 }
+
 
 repositories {
   mavenCentral()

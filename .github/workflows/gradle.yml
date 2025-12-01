@@ -3,7 +3,7 @@ name: Java CI with Gradle + Modrinth Release
 on:
   push:
     branches: [ "main" ]
-    tags: [ '*' ]   # cualquier tag dispara el workflow
+    tags: [ '*' ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
@@ -92,10 +92,19 @@ jobs:
           gh release upload ${{ github.ref_name }} $FILES --repo ${{ github.repository }}
           echo "Release asset uploaded: $FILES"
 
+      - name: Get changelog for current version
+        id: changelog
+        run: |
+          VERSION=${{ github.ref_name }}
+          awk "/## \[$VERSION\]/,/^## /{if(!/^## /) print}" CHANGELOG.md > changelog_current.txt
+          echo "CHANGELOG_CONTENT<<EOF" >> $GITHUB_ENV
+          cat changelog_current.txt >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
       - name: Send JAR to Discord (solo .jar principal)
         run: |
           FILE_PATH=$(ls ./artifacts/*.jar | grep -v "sources" | head -n1)
-          curl -F "payload_json={\"content\": \"New release: ${{ github.ref_name }}\"}" \
+          curl -F "payload_json={\"content\": \"**New release:** ${{ github.ref_name }}\n\n**Changes:**\n${{ env.CHANGELOG_CONTENT }}\"}" \
                -F "file=@${FILE_PATH}" \
                ${{ secrets.DISCORD_WEBHOOK_URL }}
 
@@ -110,14 +119,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - name: Download built JAR from build job
+        uses: actions/download-artifact@v4
         with:
-          java-version: '21'
-          distribution: 'temurin'
-
-      - name: Grant execute permission
-        run: chmod +x ./gradlew
+          name: UltraEconomy
+          path: ./artifacts
 
       - name: Set MODRINTH_VERSION from gradle.properties
         run: |
@@ -133,14 +139,8 @@ jobs:
             exit 0
           fi
 
-      - name: Download built JAR from build job
-        uses: actions/download-artifact@v4
-        with:
-          name: UltraEconomy
-          path: ./artifacts
-
       - name: Publish to Modrinth
-        run: ./gradlew modrinth
+        run: ./gradlew modrinth -PuploadFile=artifacts/UltraEconomy-${MODRINTH_VERSION}.jar
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
           MODRINTH_VERSION: ${{ env.MODRINTH_VERSION }}
