@@ -4,5 +4,5 @@
 /build/classes/java/main/
 /.idea/
 /run/
-*/.env
-.env
+# Ignorar .env en cualquier carpeta
+**/.env
