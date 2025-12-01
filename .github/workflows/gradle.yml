@@ -104,6 +104,13 @@ jobs:
           files: ./artifacts/*.jar
           release_name: Release ${{ github.ref_name }}
           body: "Automated release for version ${{ github.ref_name }}"
+      - name: Send JAR to Discord
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        run: |
+          FILE_PATH="./artifacts/UltraEconomy.jar"
+          curl -F "payload_json={\"content\": \"New release: ${{ github.ref_name }}\"}" \
+               -F "file=@${FILE_PATH}" \
+               ${{ secrets.DISCORD_WEBHOOK_URL }}
 
   modrinth:
     needs: build
