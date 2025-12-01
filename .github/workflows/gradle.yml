@@ -72,18 +72,29 @@ jobs:
           name: UltraEconomy
           path: ./artifacts
 
-      - name: Publish Release Assets (excluyendo -sources.jar)
+      - name: Create GitHub Release if not exists
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          FILES=$(ls ./artifacts/*.jar | grep -v "sources")
-          gh release upload ${{ github.ref_name }} $FILES --repo ${{ github.repository }}
-          echo "Release assets uploaded: $FILES"
+          TAG=${{ github.ref_name }}
+          if ! gh release view $TAG --repo ${{ github.repository }} 2>/dev/null; then
+            echo "Creating release $TAG"
+            gh release create $TAG --title "Release $TAG" --notes "Automated release for version $TAG" --repo ${{ github.repository }}
+          else
+            echo "Release $TAG already exists"
+          fi
 
+      - name: Upload Release Assets (excluyendo -sources.jar)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          FILES=$(ls ./artifacts/*.jar | grep -v "sources" | head -n1)
+          gh release upload ${{ github.ref_name }} $FILES --repo ${{ github.repository }}
+          echo "Release asset uploaded: $FILES"
 
       - name: Send JAR to Discord (solo .jar principal)
         run: |
-          FILE_PATH=$(ls ./artifacts/*.jar | grep -v "sources")
+          FILE_PATH=$(ls ./artifacts/*.jar | grep -v "sources" | head -n1)
           curl -F "payload_json={\"content\": \"New release: ${{ github.ref_name }}\"}" \
                -F "file=@${FILE_PATH}" \
                ${{ secrets.DISCORD_WEBHOOK_URL }}
