@@ -95,7 +95,7 @@ jobs:
       - name: Download built JAR from previous job
         uses: actions/download-artifact@v4
         with:
-          name: mod-jar
+          name: UltraEconomy
           path: ./artifacts
 
       - name: Publish Release Assets
