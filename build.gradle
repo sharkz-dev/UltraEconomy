@@ -1,6 +1,7 @@
 plugins {
     id 'fabric-loom' version '1.11-SNAPSHOT'
     id 'maven-publish'
+    id "com.modrinth.minotaur" version "2.+"
 }
 
 version = project.mod_version
@@ -25,6 +26,16 @@ fabricApi {
     configureDataGeneration {
         client = true
     }
+}
+modrinth {
+    token = System.getenv("MODRINTH_TOKEN")
+    projectId = "UltraEconomy" // ejemplo: "fabric-api"
+    versionNumber = "1.0.${System.getenv("GITHUB_RUN_NUMBER")}"
+    versionType = "release" // o beta / alpha
+    uploadFile = remapJar // o el jar final que generes
+    gameVersions = ["1.21.1"]
+    loaders = ["fabric"]
+    changelog = System.getenv("CHANGELOG") ?: "Automatic upload."
 }
 
 repositories {
@@ -76,7 +87,7 @@ dependencies {
     modImplementation("net.impactdev.impactor:common:${property("impactor_version")}")
     api("org.spigotmc:spigot-api:${property("spigot_version")}")
     api("com.github.MilkBowl:VaultAPI:${property("vault_api_version")}")
-    
+
     // Placeholder API
     modImplementation("eu.pb4:placeholder-api:${property("placeholder_api_version_fabricandforge")}")
 
