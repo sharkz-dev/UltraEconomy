@@ -1,9 +1,9 @@
-name: Java CI with Gradle
+name: Java CI with Gradle + Modrinth
 
 on:
   push:
     branches: [ "main" ]
-    tags: [ '*' ]   # 🔹 esto permite que se ejecuten jobs al hacer push de cualquier tag
+    tags: [ '*' ]   # cualquier tag dispara el workflow
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
@@ -48,7 +48,7 @@ jobs:
       - name: Upload built JAR
         uses: actions/upload-artifact@v4
         with:
-          name: UltraEconomy   # 🔹 nombre del artifact consistente
+          name: UltraEconomy
           path: build/libs/*.jar
 
   dependency-submission:
@@ -81,7 +81,6 @@ jobs:
         uses: gradle/actions/dependency-submission@v4
 
   release:
-    name: Upload JAR to GitHub Release
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
@@ -95,10 +94,52 @@ jobs:
       - name: Download built JAR from previous job
         uses: actions/download-artifact@v4
         with:
-          name: UltraEconomy   # 🔹 coincide con el nombre del artifact subido
+          name: UltraEconomy
           path: ./artifacts
 
       - name: Publish Release Assets
         uses: softprops/action-gh-release@v2
         with:
           files: ./artifacts/*.jar
+
+  modrinth:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Grant execute permission
+        run: chmod +x ./gradlew
+
+      - name: Set TAG variable
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          elif [ "${GITHUB_EVENT_NAME}" = "release" ]; then
+            echo "TAG=$(jq -r .release.tag_name < $GITHUB_EVENT_PATH)" >> $GITHUB_ENV
+          else
+            echo "TAG=manual-${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
+
+      - name: Download built JAR from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: UltraEconomy
+          path: ./artifacts
+
+      - name: Publish to Modrinth
+        run: ./gradlew modrinth
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          MODRINTH_VERSION: ${{ env.TAG }}
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
