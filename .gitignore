@@ -5,4 +5,7 @@
 /.idea/
 /run/
 # Ignorar .env en cualquier carpeta
+.env
+*/.env
 **/.env
+*.env
