@@ -3,14 +3,17 @@ name: Build and Publish to Modrinth
 on:
   push:
     tags:
-      - "v*"   # Se ejecuta cuando hagas un tag como v1.0.0
+      - '*'  # cualquier tag dispara el workflow
+  release:
+    types: [ created ]  # se dispara al crear una release en GitHub
+  workflow_dispatch:  # también puedes ejecutarlo manualmente
 
 jobs:
-  build:
+  build-and-publish:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up JDK
@@ -25,8 +28,12 @@ jobs:
       - name: Build
         run: ./gradlew build
 
+      - name: Set tag variable
+        run: echo "TAG=${GITHUB_REF##*/}" >> $GITHUB_ENV
+
       - name: Publish to Modrinth
         run: ./gradlew modrinth
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          MODRINTH_VERSION: ${{ env.TAG }}   # pasa el tag como versión
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
