@@ -28,8 +28,13 @@ jobs:
       - name: Build
         run: ./gradlew build
 
-      - name: Set tag variable
+      - name: Set tag variable for push
+        if: ${{ github.event_name == 'push' }}
         run: echo "TAG=${GITHUB_REF##*/}" >> $GITHUB_ENV
+
+      - name: Set tag variable for release
+        if: ${{ github.event_name == 'release' }}
+        run: echo "TAG=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
 
       - name: Publish to Modrinth
         run: ./gradlew modrinth
