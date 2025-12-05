@@ -251,7 +251,7 @@ public class SQLClient extends DatabaseClient {
   }
 
 
-  private void addTransaction(UUID uuid, Currency currency, BigDecimal amount, TransactionType type, boolean processed) {
+  public void addTransaction(UUID uuid, Currency currency, BigDecimal amount, TransactionType type, boolean processed) {
     asyncExecutor.submit(() -> {
       String query = SQLSentences.insertTransaction();
       try (Connection conn = dataSource.getConnection();

@@ -46,7 +46,7 @@ public abstract class DatabaseClient {
    * @return The account, or null if not found
    */
   public abstract Account getAccount(UUID uuid);
-  
+
   /**
    * Save or update an account
    *
@@ -157,4 +157,7 @@ public abstract class DatabaseClient {
   public abstract boolean existPlayerWithUUID(UUID uuid);
 
   public abstract void saveOrUpdateAccountSync(Account account);
+
+  abstract void addTransaction(UUID uuid, Currency currency, BigDecimal amount, TransactionType type,
+                               boolean processed);
 }

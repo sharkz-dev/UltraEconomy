@@ -182,7 +182,7 @@ public class MongoDBClient extends DatabaseClient {
     );
   }
 
-  private void addTransaction(UUID uuid, Currency currency, BigDecimal amount, TransactionType type, boolean processed) {
+  public void addTransaction(UUID uuid, Currency currency, BigDecimal amount, TransactionType type, boolean processed) {
     CompletableFuture.runAsync(() -> {
         Document tx = new Document(FIELD_ACCOUNT_UUID, uuid.toString())
           .append(FIELD_CURRENCY_ID, currency.getId())

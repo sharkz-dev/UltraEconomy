@@ -6,10 +6,14 @@ import com.kingpixel.cobbleutils.api.EconomyApi;
 import com.kingpixel.cobbleutils.command.suggests.CobbleUtilsSuggests;
 import com.kingpixel.ultraeconomy.UltraEconomy;
 import com.kingpixel.ultraeconomy.api.UltraEconomyApi;
+import com.kingpixel.ultraeconomy.mixins.UserCacheMixin;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -52,7 +56,15 @@ public class MigrationConfig {
           CobbleUtils.LOGGER.info("- " + currencyId);
         }
 
-        var playerUUIDs = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerNames();
+        var playerUUIDs = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerUUIDs();
+        var userCache = UltraEconomy.server.getUserCache();
+        Set<UUID> missingUUIDs = new HashSet<>();
+        if (userCache != null) {
+          missingUUIDs = ((UserCacheMixin) userCache).getByUuid().keySet();
+        }
+        Set<UUID> fusionUUIDs = new HashSet<>();
+        fusionUUIDs.addAll(missingUUIDs);
+        fusionUUIDs.addAll(playerUUIDs);
 
         try {
           CobbleUtils.LOGGER.info("Waiting 10s before starting migration to let the server breathe...");
@@ -65,42 +77,33 @@ public class MigrationConfig {
         }
 
         for (var uuid : playerUUIDs) {
-          var dataOpt = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayer(uuid);
-
-          if (dataOpt.isEmpty()) {
-            CobbleUtils.LOGGER.warn("Could not find player with UUID " + uuid + ", skipping");
-            continue;
-          }
-
-          var dataResultPlayer = dataOpt.get();
-          var userModel = dataResultPlayer.user();
-
           // Obtener o crear cuenta
-          var account = UltraEconomyApi.getAccount(userModel.getPlayerUUID());
+          var account = UltraEconomyApi.getAccount(uuid);
           if (account == null) {
-            account = new Account(userModel.getPlayerUUID(), userModel.getPlayerName());
+            account = new Account(uuid);
             UltraEconomyApi.saveAccount(account);
-            CobbleUtils.LOGGER.info("Created new account for player " + userModel.getPlayerName());
           }
           UltraEconomyApi.getAccount(account.getPlayerUUID());
           // Migrar balances
-          for (int i = 0; i < economyUses.size(); i++) {
+          int size = economyUses.size();
+          for (int i = 0; i < size; i++) {
             var economyUse = economyUses.get(i);
             var currencyId = currencyIds.get(Math.min(i, currencyIds.size() - 1)); // evita IndexOutOfBounds
 
-            BigDecimal balance = EconomyApi.getBalance(userModel.getPlayerUUID(), economyUse);
+            BigDecimal balance = EconomyApi.getBalance(uuid, economyUse);
 
             if (balance == null) {
-              CobbleUtils.LOGGER.warn("Balance for player " + userModel.getPlayerName() + " is null, skipping");
-              continue;
-            }
-            if (balance.compareTo(BigDecimal.ZERO) <= 0) {
-              CobbleUtils.LOGGER.info("Balance for player " + userModel.getPlayerName() + " is zero or negative, skipping");
+              CobbleUtils.LOGGER.warn("Balance for player " + uuid + " is null, skipping");
               continue;
             }
 
-            UltraEconomyApi.setBalance(userModel.getPlayerUUID(), currencyId, balance);
-            CobbleUtils.LOGGER.info("Migrated " + balance + " " + currencyId + " for player " + userModel.getPlayerName());
+            if (balance.compareTo(BigDecimal.ZERO) <= 0) {
+              CobbleUtils.LOGGER.info("Balance for player " + uuid + " is zero or negative, skipping");
+              continue;
+            }
+
+            UltraEconomyApi.setBalance(uuid, currencyId, balance);
+            CobbleUtils.LOGGER.info("Migrated " + balance + " " + currencyId + " for player " + uuid);
           }
 
           UltraEconomyApi.saveAccount(account);

@@ -84,6 +84,11 @@ public class JSONClient extends DatabaseClient {
     saveAccount(account);
   }
 
+  @Override
+  void addTransaction(UUID uuid, Currency currency, BigDecimal amount, TransactionType type, boolean processed) {
+
+  }
+
   private void saveAccount(Account account) {
     String data = Utils.newWithoutSpacingGson().toJson(account, Account.class);
     File accountFile = Utils.getAbsolutePath(PATH + account.getPlayerUUID().toString() + FILE_SUFFIX);
