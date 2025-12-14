@@ -11,9 +11,9 @@ import com.kingpixel.ultraeconomy.database.DatabaseFactory;
 import com.kingpixel.ultraeconomy.manager.PlayerMessageQueueManager;
 import com.kingpixel.ultraeconomy.models.Account;
 import com.kingpixel.ultraeconomy.placeholders.PlaceHolders;
+import dev.architectury.event.events.common.PlayerEvent;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.MinecraftServer;
 
@@ -59,7 +59,7 @@ public class UltraEconomy implements ModInitializer {
   }
 
   public void events() {
-    ServerPlayerEvents.JOIN.register((player) -> CompletableFuture.runAsync(() -> {
+    PlayerEvent.PLAYER_JOIN.register((player) -> CompletableFuture.runAsync(() -> {
         Account account = DatabaseFactory.INSTANCE.getAccount(player.getUuid());
         account.setPlayerName(player.getGameProfile().getName());
         DatabaseFactory.CACHE_ACCOUNTS.put(player.getUuid(), account);
@@ -71,7 +71,7 @@ public class UltraEconomy implements ModInitializer {
         return null;
       }));
 
-    ServerPlayerEvents.LEAVE.register((player) -> {
+    PlayerEvent.PLAYER_QUIT.register((player) -> {
       if (server.isStopped() || server.isStopping()) return;
       DatabaseFactory.CACHE_ACCOUNTS.invalidate(player.getUuid());
     });

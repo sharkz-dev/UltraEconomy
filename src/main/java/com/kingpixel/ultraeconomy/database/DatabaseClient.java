@@ -158,6 +158,6 @@ public abstract class DatabaseClient {
 
   public abstract void saveOrUpdateAccountSync(Account account);
 
-  abstract void addTransaction(UUID uuid, Currency currency, BigDecimal amount, TransactionType type,
-                               boolean processed);
+  protected abstract void addTransaction(UUID uuid, Currency currency, BigDecimal amount, TransactionType type,
+                                         boolean processed);
 }

@@ -1,10 +1,13 @@
-package com.kingpixel.ultraeconomy.database;
+package com.kingpixel.ultraeconomy.database.SQL;
 
 import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.Model.DataBaseConfig;
 import com.kingpixel.cobbleutils.Model.DataBaseType;
 import com.kingpixel.ultraeconomy.api.UltraEconomyApi;
 import com.kingpixel.ultraeconomy.config.Currencies;
+import com.kingpixel.ultraeconomy.database.DatabaseClient;
+import com.kingpixel.ultraeconomy.database.DatabaseFactory;
+import com.kingpixel.ultraeconomy.database.TransactionType;
 import com.kingpixel.ultraeconomy.exceptions.DatabaseConnectionException;
 import com.kingpixel.ultraeconomy.exceptions.UnknownAccountException;
 import com.kingpixel.ultraeconomy.models.Account;

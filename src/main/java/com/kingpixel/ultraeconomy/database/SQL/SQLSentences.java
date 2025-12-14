@@ -1,8 +1,9 @@
-package com.kingpixel.ultraeconomy.database;
+package com.kingpixel.ultraeconomy.database.SQL;
 
 import com.kingpixel.cobbleutils.Model.DataBaseConfig;
 import com.kingpixel.cobbleutils.Model.DataBaseType;
 import com.kingpixel.ultraeconomy.UltraEconomy;
+import com.kingpixel.ultraeconomy.database.DatabaseFactory;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 

@@ -85,7 +85,7 @@ public class JSONClient extends DatabaseClient {
   }
 
   @Override
-  void addTransaction(UUID uuid, Currency currency, BigDecimal amount, TransactionType type, boolean processed) {
+  protected void addTransaction(UUID uuid, Currency currency, BigDecimal amount, TransactionType type, boolean processed) {
 
   }
 

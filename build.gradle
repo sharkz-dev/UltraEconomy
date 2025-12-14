@@ -4,12 +4,32 @@ plugins {
   id "com.modrinth.minotaur" version "2.+"
 }
 
-version = project.mod_version
-group = project.maven_group
+ext.hash_id = ""
 
-base {
-  archivesName = project.archives_base_name
+// Leer isDev desde gradle.properties (default: false)
+def isDev = project.hasProperty("isDev") ? project.property("isDev").toBoolean() : false
+
+// Si es dev, generar hash de git, sino no hace falta
+if (isDev) {
+  try {
+    def stdout = new ByteArrayOutputStream()
+    exec {
+      commandLine 'git', 'rev-parse', '--short', 'HEAD'
+      standardOutput = stdout
+    }
+    ext.hash_id = stdout.toString().trim()
+  } catch (Exception e) {
+    ext.hash_id = "dev"
+  }
 }
+
+// Configurar el nombre del archivo
+archivesBaseName = project.archives_base_name
+
+// Version del mod (con sufijo dev si corresponde)
+version = project.mod_version + (isDev ? "-dev-${hash_id}" : "")
+
+group = project.maven_group
 
 loom {
   splitEnvironmentSourceSets()
@@ -27,12 +47,13 @@ fabricApi {
     client = true
   }
 }
+
 modrinth {
   token = System.getenv("MODRINTH_TOKEN")
-  projectId = "UltraEconomy" // ejemplo: "fabric-api"
-  versionNumber = project.mod_version
-  versionType = "release" // o beta / alpha
-  uploadFile = remapJar // o el jar final que generes
+  projectId = "UltraEconomy"
+  versionNumber = project.version
+  versionType = "release"
+  uploadFile = tasks.named("remapJar").flatMap { it.archiveFile }.get().asFile
   gameVersions = ["1.21.1"]
   loaders = ["fabric"]
   changelog = System.getenv("CHANGELOG") ?: "Automatic upload."
@@ -55,32 +76,22 @@ repositories {
   maven { url "https://maven.impactdev.net/repository/development/" }
   maven { url "https://hub.spigotmc.org/nexus/content/repositories/snapshots/" }
   maven { url "https://repo.extendedclip.com/content/repositories/placeholderapi/" }
-  maven {
-    url "https://maven.nucleoid.xyz/"
-    name = "Nucleoid"
-  }
-  maven {
-    url "https://oss.sonatype.org/content/repositories/snapshots"
-    name = "Sonatype Snapshots"
-  }
-  maven {
-    url "https://s01.oss.sonatype.org/content/repositories/snapshots"
-    name = "Sonatype 01 Snapshots"
-  }
+  maven { url "https://maven.nucleoid.xyz/"; name = "Nucleoid" }
+  maven { url "https://oss.sonatype.org/content/repositories/snapshots"; name = "Sonatype Snapshots" }
+  maven { url "https://s01.oss.sonatype.org/content/repositories/snapshots"; name = "Sonatype 01 Snapshots" }
 }
 
 dependencies {
-  // To change the versions see the gradle.properties file
   minecraft "com.mojang:minecraft:${project.minecraft_version}"
   mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-  modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+  modImplementation "net.fabricmc:fabric-loader:${project.fabric_loader_version}"
   modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-
+  modImplementation "dev.architectury:architectury-fabric:${project.architectury_version}"
+  modImplementation("com.cobblemon:fabric:${property("cobblemon_version")}")
+  api("net.objecthunter:exp4j:0.4.8")
   modImplementation(files(fileTree(dir: 'libs', include: '*.jar')))
   implementation("com.github.ben-manes.caffeine:caffeine:3.2.2")
-
   modImplementation("ca.landonjw.gooeylibs:fabric-api-repack:${property("gooeylibs_version")}")
-
 
   // Economy APIs
   modImplementation("net.impactdev.impactor.api:economy:${property("impactor_version")}")
@@ -98,27 +109,35 @@ dependencies {
   // Lombok
   annotationProcessor("org.projectlombok:lombok:${property("lombok_version")}")
   implementation("org.projectlombok:lombok:${property("lombok_version")}")
+
+  // Votifier
+  implementation("com.github.NuVotifier.NuVotifier:nuvotifier-api:2.7.2")
+  implementation("com.github.DrexHD:NuVotifier-Fabric:1.0.0-1.20.5")
 }
 
 processResources {
   inputs.property "version", project.version
   inputs.property "minecraft_version", project.minecraft_version
-  inputs.property "loader_version", project.loader_version
+  inputs.property "loader_version", project.fabric_loader_version
+  inputs.property "mod_id", project.mod_id
+  inputs.property "mod_name", project.mod_name
+  inputs.property "author", project.author
+  inputs.property "license", project.license
   filteringCharset "UTF-8"
 
   filesMatching("fabric.mod.json") {
     expand "version": project.version,
       "minecraft_version": project.minecraft_version,
-      "loader_version": project.loader_version
+      "loader_version": project.fabric_loader_version,
+      "mod_id": project.mod_id,
+      "mod_name": project.mod_name,
+      "author": project.author,
+      "license": project.license
   }
 }
 
 def targetJavaVersion = 21
 tasks.withType(JavaCompile).configureEach {
-  // ensure that the encoding is set to UTF-8, no matter what the system default is
-  // this fixes some edge cases with special characters not displaying correctly
-  // see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
-  // If Javadoc is generated, this must be specified in that task too.
   it.options.encoding = "UTF-8"
   if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
     it.options.release.set(targetJavaVersion)
@@ -130,9 +149,6 @@ java {
   if (JavaVersion.current() < javaVersion) {
     toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
   }
-  // Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
-  // if it is present.
-  // If you remove this line, sources will not be generated.
   withSourcesJar()
 }
 
@@ -142,20 +158,11 @@ jar {
   }
 }
 
-// configure the maven publication
 publishing {
   publications {
     create("mavenJava", MavenPublication) {
-      artifactId = project.archives_base_name
+      artifactId = project.archivesBaseName
       from components.java
     }
-  }
-
-  // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-  repositories {
-    // Add repositories to publish to here.
-    // Notice: This block does NOT have the same function as the block in the top level.
-    // The repositories here will be used for publishing your artifact, not for
-    // retrieving dependencies.
   }
 }
