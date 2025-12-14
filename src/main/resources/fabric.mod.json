@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "id": "ultraeconomy",
+  "id": "${mod_id}",
   "version": "${version}",
-  "name": "UltraEconomy",
+  "name": "${mod_name}",
   "description": "",
   "authors": [
-    "zonary123"
+    "${author}"
   ],
   "contact": {},
-  "license": "All-Rights-Reserved",
-  "icon": "assets/ultraeconomy/icon.png",
+  "license": "${license}",
+  "icon": "assets/${mod_id}/icon.png",
   "environment": "server",
   "entrypoints": {
     "main": [
@@ -17,11 +17,12 @@
     ]
   },
   "mixins": [
-    "ultraeconomy.mixins.json"
+    "${mod_id}.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=${loader_version}",
     "fabric": "*",
-    "minecraft": "${minecraft_version}"
+    "minecraft": "${minecraft_version}",
+    "cobbleutils": "*"
   }
 }
