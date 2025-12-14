@@ -106,26 +106,26 @@ public class Account {
     return doc;
   }
 
-  public BigDecimal getBalance(Currency currency) {
+  public synchronized BigDecimal getBalance(Currency currency) {
     return balances.getOrDefault(currency.getId(), null);
   }
 
-  public boolean addBalance(Currency currency, BigDecimal amount) {
+  public synchronized boolean addBalance(Currency currency, BigDecimal amount) {
     balances.merge(currency.getId(), amount, BigDecimal::add);
     return true;
   }
 
-  public boolean removeBalance(Currency currency, BigDecimal amount) {
+  public synchronized boolean removeBalance(Currency currency, BigDecimal amount) {
     balances.merge(currency.getId(), amount, BigDecimal::subtract);
     return true;
   }
 
-  public BigDecimal setBalance(Currency currency, BigDecimal amount) {
+  public synchronized BigDecimal setBalance(Currency currency, BigDecimal amount) {
     balances.put(currency.getId(), amount);
     return amount;
   }
 
-  public boolean hasEnoughBalance(Currency currency, BigDecimal amount) {
+  public synchronized boolean hasEnoughBalance(Currency currency, BigDecimal amount) {
     return getBalance(currency).compareTo(amount) >= 0;
   }
 
