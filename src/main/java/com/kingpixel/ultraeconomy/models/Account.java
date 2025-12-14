@@ -30,7 +30,7 @@ public class Account {
   private long rank;
   private UUID playerUUID;
   private String playerName;
-  private final Map<String, BigDecimal> balances;
+  private final ConcurrentHashMap<String, BigDecimal> balances;
 
   public Account(ServerPlayerEntity player) {
     this.playerUUID = player.getUuid();
@@ -134,8 +134,8 @@ public class Account {
       balances.putIfAbsent(v.getId(), v.getDefaultBalance()));
   }
 
-  private Map<String, BigDecimal> defaultBalances() {
-    Map<String, BigDecimal> defaults = new ConcurrentHashMap<>();
+  private ConcurrentHashMap<String, BigDecimal> defaultBalances() {
+    ConcurrentHashMap<String, BigDecimal> defaults = new ConcurrentHashMap<>();
     Currencies.getCurrencyMap().forEach((k, v) -> defaults.put(v.getId(), v.getDefaultBalance()));
     return defaults;
   }
