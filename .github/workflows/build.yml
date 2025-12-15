@@ -5,8 +5,7 @@ on:
     tags: [ "*" ]
 
 env:
-  DISCORD_COBBLEMON: ${{ secrets.DISCORD_COBBLEMON }}
-  DISCORD_ZONARY123: ${{ secrets.DISCORD_ZONARY123 }}
+  DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
   MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -71,28 +70,18 @@ jobs:
             '{content: "@everyone 🎉 New Release!
             \nIf you want contribute, check the repository:
             \n[GitHub Repository](<https://github.com/zonary123/UltraEconomy>)",
-          embeds:[{title:("Release "+$tag), description:$changelog,
-          color:3066993}]}')
+            embeds:[{title:("Release "+$tag), description:$changelog,
+            color:3066993}]}')
 
           echo "Embed JSON:"
           echo "$JSON_PAYLOAD"
-
+          
           # 1️⃣ Enviar primero el embed
-          curl -s -X POST "$DISCORD_COBBLEMON" \
+          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -d "$JSON_PAYLOAD"
 
           # 2️⃣ Enviar después el archivo como segundo mensaje
-          curl -s -X POST "$DISCORD_COBBLEMON" \
-            -F "file=@${FILE}"
-
-          # Repetir para el otro webhook de Discord
-          # 1️⃣ Enviar primero el embed
-          curl -s -X POST "$DISCORD_ZONARY123" \
-            -H "Content-Type: application/json" \
-            -d "$JSON_PAYLOAD"
-
-          # 2️⃣ Enviar después el archivo como segundo mensaje
-          curl -s -X POST "$DISCORD_ZONARY123" \
+          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
             -F "file=@${FILE}"
 
