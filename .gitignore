@@ -1,11 +1,40 @@
-# Project exclude paths
-/.gradle/
-/build/
-/build/classes/java/main/
-/.idea/
+.gradle
+run
+build
+.idea
+common/run
+forge/run
+fabric/run
 /run/
-# Ignorar .env en cualquier carpeta
 .env
-*/.env
-**/.env
-*.env
+
+/forge/.architectury-transformer/debug.log
+
+# eclipse
+.secrets
+bin
+*.launch
+.settings
+.metadata
+.classpath
+.project
+/.architectury-transformer/
+/net.kyori
+
+# idea
+out
+*.ipr
+*.iws
+*.iml
+
+# Files from Forge MDK
+forge*changelog.txt
+/showdown/
+/logs/
+.vscode/launch.json
+.vscode
+
+# Generated files
+*/generated/resources/*
+/fabric/src/generated/resources/cobblemon-common.accesswidener
+/actual_versions/
