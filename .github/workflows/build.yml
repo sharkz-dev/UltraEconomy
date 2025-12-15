@@ -5,7 +5,8 @@ on:
     tags: [ "*" ]
 
 env:
-  DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+  DISCORD_COBBLEMON: ${{ secrets.DISCORD_COBBLEMON }}
+  DISCORD_ZONARY123: ${{ secrets.DISCORD_ZONARY123 }}
   MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -53,10 +54,10 @@ jobs:
             --title "Release $TAG" \
             --notes "Automated release for version $TAG"
 
-      - name: Send Discord Notification with Embed and File
+      - name: Send Discord Notifications
         run: |
           FILE=$(ls build/libs/*.jar | grep -v "sources" | head -n1)
-          
+
           # Extraer changelog
           BASE=$(echo "$TAG" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
           CHANGELOG_CONTENT=$(tr -d '\r' < CHANGELOG.md | awk -v ver="$BASE" '
@@ -64,36 +65,34 @@ jobs:
             /^## \[/ && flag {flag=0}
             flag {print}
           ')
-          
+
           # Generar JSON embed correctamente escapado
           JSON_PAYLOAD=$(jq -nc --arg tag "$TAG" --arg changelog "$CHANGELOG_CONTENT" \
-            '{content: "@everyone 🎉 New Release!\nIf you want to contribute, here is the mod's GitHub.[Repository](https://github.com/zonary123/UltraEconomy)", 
-          embeds:[{title:("Release "+$tag), description:$changelog, 
+            '{content: "@everyone 🎉 New Release!
+            \nIf you want contribute, check the repository:
+            \n[GitHub Repository](<https://github.com/zonary123/UltraEconomy>)",
+          embeds:[{title:("Release "+$tag), description:$changelog,
           color:3066993}]}')
-          
+
           echo "Embed JSON:"
           echo "$JSON_PAYLOAD"
-          
+
           # 1️⃣ Enviar primero el embed
-          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+          curl -s -X POST "$DISCORD_COBBLEMON" \
             -H "Content-Type: application/json" \
             -d "$JSON_PAYLOAD"
-          
+
           # 2️⃣ Enviar después el archivo como segundo mensaje
-          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+          curl -s -X POST "$DISCORD_COBBLEMON" \
             -F "file=@${FILE}"
 
-      - name: Publish to Modrinth
-        run: |
-          FILE=$(ls build/libs/*.jar | grep -v "sources" | head -n1)
+          # Repetir para el otro webhook de Discord
+          # 1️⃣ Enviar primero el embed
+          curl -s -X POST "$DISCORD_ZONARY123" \
+            -H "Content-Type: application/json" \
+            -d "$JSON_PAYLOAD"
 
-          # Verificar si la versión ya existe
-          EXISTS=$(curl -s "https://api.modrinth.com/v2/project/$MOD_NAME/version" | \
-            jq -r ".[] | select(.version_number==\"$MOD_VERSION\") | .version_number")
+          # 2️⃣ Enviar después el archivo como segundo mensaje
+          curl -s -X POST "$DISCORD_ZONARY123" \
+            -F "file=@${FILE}"
 
-          if [ -n "$EXISTS" ]; then
-            echo "La versión $MOD_VERSION ya existe en Modrinth, omitiendo publicación."
-            exit 0
-          fi
-
-          ./gradlew modrinth -PuploadFile="$FILE" -PmodrinthVersion="$MOD_VERSION"
