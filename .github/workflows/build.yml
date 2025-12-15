@@ -68,8 +68,8 @@ jobs:
           # Generar JSON embed correctamente escapado
           JSON_PAYLOAD=$(jq -nc --arg tag "$TAG" --arg changelog "$CHANGELOG_CONTENT" \
             '{content: "@everyone 🎉 New Release!
-            \nIf you want contribute, check the repository:
-            \n[GitHub Repository](<https://github.com/zonary123/UltraEconomy>)",
+            If you want contribute, check the repository:
+            [GitHub Repository](<https://github.com/zonary123/UltraEconomy>)",
             embeds:[{title:("Release "+$tag), description:$changelog,
             color:3066993}]}')
 
