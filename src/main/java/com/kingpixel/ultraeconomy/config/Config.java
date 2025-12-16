@@ -22,6 +22,7 @@ public class Config {
   private boolean debug;
   private boolean notifications;
   private boolean queueMessages;
+  private DurationValue retentionBackUps;
   private DurationValue betweenMessagesDelay;
   private String lang;
   private List<String> commands;
@@ -35,6 +36,7 @@ public class Config {
     debug = false;
     notifications = true;
     queueMessages = false;
+    retentionBackUps = DurationValue.parse("7d");
     betweenMessagesDelay = DurationValue.parse("1s");
     lang = "en_us";
     commands = List.of("money", "balance", "bal", "eco", "ultraeconomy");

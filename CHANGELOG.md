@@ -14,3 +14,10 @@
 
 ### Fixed
 - Minor bug fixes in user data saving.
+- Fixed Injection issue in Impactor Mixins.
+
+### Feature plans
+- Upcoming backup system.
+- Upcoming discord webhook notifications.
+- Upcoming more detailed transaction history.
+- Upcoming Web dashboard view statistics and management.

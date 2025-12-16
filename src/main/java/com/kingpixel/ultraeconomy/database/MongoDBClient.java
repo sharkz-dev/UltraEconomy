@@ -9,11 +9,9 @@ import com.kingpixel.ultraeconomy.models.Account;
 import com.kingpixel.ultraeconomy.models.Currency;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
+import com.mongodb.MongoNamespace;
 import com.mongodb.client.*;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.ReplaceOptions;
-import com.mongodb.client.model.Sorts;
-import com.mongodb.client.model.Updates;
+import com.mongodb.client.model.*;
 import net.minecraft.entity.Entity;
 import org.bson.Document;
 import org.bson.UuidRepresentation;
@@ -28,8 +26,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class MongoDBClient extends DatabaseClient {
+  // Nombres de las colecciones
   private static final String TRANSACTIONS_COLLECTION = "transactions";
   private static final String ACCOUNTS_COLLECTION = "accounts";
+  private static final String BACKUPS_COLLECTION = "backups";
+
   public static final String FIELD_UUID = "uuid";
   public static final String FIELD_PLAYER_NAME = "player_name";
   public static final String FIELD_BALANCES = "balances";
@@ -38,17 +39,20 @@ public class MongoDBClient extends DatabaseClient {
   private static final String FIELD_AMOUNT = "amount";
   private static final String FIELD_TYPE = "type";
   private static final String FIELD_PROCESSED = "processed";
+  private static final String FIELD_BACKUP_UUID = "uuid";
 
+  private MongoDatabase database;
   private MongoClient mongoClient;
   private MongoCollection<Document> accountsCollection;
   private MongoCollection<Document> transactionsCollection;
+  private MongoCollection<Document> backupsCollection;
+
 
   private ScheduledExecutorService transactionExecutor;
   private boolean runningTransactions = false;
 
   @Override
   public void connect(DataBaseConfig config) {
-    MongoDatabase database;
     try {
       mongoClient = MongoClients.create(
         MongoClientSettings.builder()
@@ -61,7 +65,7 @@ public class MongoDBClient extends DatabaseClient {
 
       accountsCollection = database.getCollection(ACCOUNTS_COLLECTION);
       transactionsCollection = database.getCollection(TRANSACTIONS_COLLECTION);
-
+      backupsCollection = database.getCollection(BACKUPS_COLLECTION);
       // asegurar índices
       ensureIndexes();
 
@@ -197,6 +201,115 @@ public class MongoDBClient extends DatabaseClient {
         return null;
       });
   }
+
+  @Override
+  public void createBackUp() {
+    CompletableFuture.runAsync(() -> {
+      try {
+        List<Document> accounts = new ArrayList<>();
+        for (Document doc : accountsCollection.find()) {
+          accounts.add(doc);
+        }
+
+        List<Document> transactions = new ArrayList<>();
+        for (Document doc : transactionsCollection.find()) {
+          transactions.add(doc);
+        }
+
+        Document backup = new Document("created_at", Date.from(Instant.now()))
+          .append("uuid", UUID.randomUUID().toString())
+          .append("accounts", accounts)
+          .append("transactions", transactions);
+
+        backupsCollection.insertOne(backup);
+
+        if (UltraEconomy.config.isDebug()) {
+          CobbleUtils.LOGGER.info("📦 MongoDB backup created successfully");
+        }
+
+      } catch (Exception e) {
+        CobbleUtils.LOGGER.error("❌ Error creating MongoDB backup");
+        e.printStackTrace();
+      }
+      cleanOldBackUps();
+    }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR);
+  }
+
+  protected void cleanOldBackUps() {
+    try {
+      long millis = UltraEconomy.config.getRetentionBackUps().toMillis();
+
+      Instant limit = Instant.now().minus(millis, TimeUnit.MILLISECONDS.toChronoUnit());
+      Date limitDate = Date.from(limit);
+
+      long deleted = backupsCollection.deleteMany(
+        Filters.lt("created_at", limitDate)
+      ).getDeletedCount();
+
+      if (deleted > 0 && UltraEconomy.config.isDebug()) {
+        CobbleUtils.LOGGER.info("🧹 Deleted " + deleted + " old backups");
+      }
+    } catch (Exception e) {
+      CobbleUtils.LOGGER.error("❌ Error cleaning old backups");
+      e.printStackTrace();
+    }
+  }
+
+
+  @Override
+  public void loadBackUp(UUID backupUUID) {
+    CompletableFuture.runAsync(() -> {
+      try {
+        Document backup = backupsCollection.find(
+          Filters.eq(FIELD_BACKUP_UUID, backupUUID.toString())
+        ).first();
+
+        if (backup == null) {
+          CobbleUtils.LOGGER.warn("⚠ Backup not found: " + backupUUID);
+          return;
+        }
+
+        List<Document> accounts = backup.getList("accounts", Document.class);
+        List<Document> transactions = backup.getList("transactions", Document.class);
+
+        if (accounts == null || transactions == null) {
+          throw new IllegalStateException("Backup corrupted");
+        }
+
+
+        String accTmp = "accounts_restore_tmp";
+        String txTmp = "transactions_restore_tmp";
+
+        database.getCollection(accTmp).drop();
+        database.getCollection(txTmp).drop();
+
+        MongoCollection<Document> tmpAccounts = database.getCollection(accTmp);
+        MongoCollection<Document> tmpTx = database.getCollection(txTmp);
+
+        tmpAccounts.insertMany(accounts);
+        tmpTx.insertMany(transactions);
+
+        tmpAccounts.renameCollection(
+          new MongoNamespace(database.getName(), ACCOUNTS_COLLECTION),
+          new RenameCollectionOptions().dropTarget(true)
+        );
+
+        tmpTx.renameCollection(
+          new MongoNamespace(database.getName(), TRANSACTIONS_COLLECTION),
+          new RenameCollectionOptions().dropTarget(true)
+        );
+
+        DatabaseFactory.CACHE_ACCOUNTS.invalidateAll();
+
+        CobbleUtils.LOGGER.info("♻ Backup restored successfully: " + backupUUID);
+
+      } catch (Exception e) {
+        CobbleUtils.LOGGER.error("❌ Error restoring backup: " + backupUUID);
+        e.printStackTrace();
+      }
+    }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR);
+  }
+
 
   private void checkAndApplyTransactions() {
     if (!runningTransactions || UltraEconomy.server == null) return;

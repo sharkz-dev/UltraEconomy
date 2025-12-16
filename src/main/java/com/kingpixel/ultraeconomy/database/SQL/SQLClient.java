@@ -272,6 +272,21 @@ public class SQLClient extends DatabaseClient {
     });
   }
 
+  @Override
+  public void createBackUp() {
+
+  }
+
+  @Override
+  public void loadBackUp(UUID uuid) {
+
+  }
+
+  @Override
+  protected void cleanOldBackUps() {
+    
+  }
+
   private void checkAndApplyTransactions() {
     if (!runningTransactions) return;
 

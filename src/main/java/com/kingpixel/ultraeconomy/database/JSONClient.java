@@ -89,6 +89,21 @@ public class JSONClient extends DatabaseClient {
 
   }
 
+  @Override
+  public void createBackUp() {
+
+  }
+
+  @Override
+  public void loadBackUp(UUID uuid) {
+
+  }
+
+  @Override
+  protected void cleanOldBackUps() {
+    
+  }
+
   private void saveAccount(Account account) {
     String data = Utils.newWithoutSpacingGson().toJson(account, Account.class);
     File accountFile = Utils.getAbsolutePath(PATH + account.getPlayerUUID().toString() + FILE_SUFFIX);

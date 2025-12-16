@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 @Data
 public class MigrationConfig {
@@ -59,22 +58,10 @@ public class MigrationConfig {
         var playerUUIDs = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerUUIDs();
         var userCache = UltraEconomy.server.getUserCache();
         Set<UUID> missingUUIDs = new HashSet<>();
-        if (userCache != null) {
-          missingUUIDs = ((UserCacheMixin) userCache).getByUuid().keySet();
-        }
+        if (userCache != null) missingUUIDs = ((UserCacheMixin) userCache).getByUuid().keySet();
         Set<UUID> fusionUUIDs = new HashSet<>();
         fusionUUIDs.addAll(missingUUIDs);
         fusionUUIDs.addAll(playerUUIDs);
-
-        try {
-          CobbleUtils.LOGGER.info("Waiting 10s before starting migration to let the server breathe...");
-          Thread.sleep(TimeUnit.SECONDS.toMillis(10));
-        } catch (InterruptedException e) {
-          CobbleUtils.LOGGER.error("Migration sleep interrupted");
-          e.printStackTrace();
-          Thread.currentThread().interrupt();
-          return;
-        }
 
         for (var uuid : playerUUIDs) {
           // Obtener o crear cuenta
