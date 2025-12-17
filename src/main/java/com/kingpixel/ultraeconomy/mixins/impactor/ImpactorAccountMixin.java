@@ -8,7 +8,6 @@ import net.impactdev.impactor.api.economy.transactions.EconomyTransaction;
 import net.impactdev.impactor.api.economy.transactions.EconomyTransferTransaction;
 import net.impactdev.impactor.api.economy.transactions.details.EconomyTransactionType;
 import net.impactdev.impactor.core.economy.accounts.ImpactorAccount;
-import net.impactdev.impactor.core.economy.transactions.composers.BaseTransactionComposer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -43,16 +42,6 @@ public abstract class ImpactorAccountMixin {
         .build());
     }
   }
-
-  @Inject(method = "deposit(Lnet/impactdev/impactor/core/economy/transactions/composers/BaseTransactionComposer;)Lnet/impactdev/impactor/api/economy/transactions/EconomyTransaction;", at = @At("HEAD"), remap = false)
-  private void deposit(BaseTransactionComposer composer, CallbackInfoReturnable<EconomyTransaction> cir) {
-    if (UltraEconomy.migrationDone) {
-      ImpactorAccount self = (ImpactorAccount) (Object) this;
-      BigDecimal amount = composer.amount();
-      UltraEconomyApi.deposit(self.owner(), getCurrencyId(self.currency()), amount);
-    }
-  }
-
 
   @Inject(method = "withdraw(Ljava/math/BigDecimal;)" +
     "Lnet/impactdev/impactor/api/economy/transactions/EconomyTransaction;", at = @At("HEAD"), cancellable = true, remap = false)

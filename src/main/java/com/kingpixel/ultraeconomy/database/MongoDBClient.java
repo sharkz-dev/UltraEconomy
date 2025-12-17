@@ -203,8 +203,8 @@ public class MongoDBClient extends DatabaseClient {
   }
 
   @Override
-  public void createBackUp() {
-    CompletableFuture.runAsync(() -> {
+  public CompletableFuture<?> createBackUp() {
+    return CompletableFuture.runAsync(() -> {
       try {
         List<Document> accounts = new ArrayList<>();
         for (Document doc : accountsCollection.find()) {
@@ -253,6 +253,12 @@ public class MongoDBClient extends DatabaseClient {
       CobbleUtils.LOGGER.error("❌ Error cleaning old backups");
       e.printStackTrace();
     }
+  }
+
+  @Override public List<Account> getAccounts(int limit) {
+    return accountsCollection.find().limit(limit)
+      .map(Account::fromDocument)
+      .into(new ArrayList<>());
   }
 
 

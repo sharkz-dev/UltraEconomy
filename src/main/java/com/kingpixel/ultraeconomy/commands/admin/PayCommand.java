@@ -2,6 +2,7 @@ package com.kingpixel.ultraeconomy.commands.admin;
 
 import com.kingpixel.cobbleutils.api.PermissionApi;
 import com.kingpixel.cobbleutils.command.suggests.CobbleUtilsSuggests;
+import com.kingpixel.cobbleutils.util.PlayerUtils;
 import com.kingpixel.ultraeconomy.UltraEconomy;
 import com.kingpixel.ultraeconomy.api.UltraEconomyApi;
 import com.kingpixel.ultraeconomy.commands.Register;
@@ -72,6 +73,7 @@ public class PayCommand {
   }
 
   private static void run(ServerPlayerEntity executor, String target, String currencyId, BigDecimal amount, CommandContext<ServerCommandSource> context) {
+    PlayerUtils.hasCooldownCommand(executor, "ultraeconomy.command.pay", UltraEconomy.config.getCommandCooldown());
     CompletableFuture.runAsync(() -> {
         Currency currency = Currencies.getCurrency(currencyId);
 

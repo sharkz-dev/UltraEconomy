@@ -90,8 +90,8 @@ public class JSONClient extends DatabaseClient {
   }
 
   @Override
-  public void createBackUp() {
-
+  public CompletableFuture<?> createBackUp() {
+    return CompletableFuture.completedFuture(null);
   }
 
   @Override
@@ -101,7 +101,12 @@ public class JSONClient extends DatabaseClient {
 
   @Override
   protected void cleanOldBackUps() {
-    
+
+  }
+
+  @Override public List<Account> getAccounts(int limit) {
+    CobbleUtils.LOGGER.warn("getAccounts is not supported in JSON database.");
+    return null;
   }
 
   private void saveAccount(Account account) {

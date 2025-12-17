@@ -10,6 +10,7 @@ import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public abstract class DatabaseClient {
   /**
@@ -42,6 +43,7 @@ public abstract class DatabaseClient {
    * Get an account by UUID
    *
    * @param uuid The UUID of the account
+   *
    * @return The account, or null if not found
    */
   public abstract Account getAccount(UUID uuid);
@@ -59,6 +61,7 @@ public abstract class DatabaseClient {
    * @param uuid     The UUID of the account
    * @param currency The currency to add
    * @param amount   The amount to add
+   *
    * @return true if successful, false otherwise
    */
   public abstract boolean addBalance(UUID uuid, Currency currency, BigDecimal amount);
@@ -69,6 +72,7 @@ public abstract class DatabaseClient {
    * @param uuid     The UUID of the account
    * @param currency The currency to withdraw
    * @param amount   The amount to withdraw
+   *
    * @return true if successful, false otherwise
    */
   public boolean deposit(UUID uuid, Currency currency, BigDecimal amount) {
@@ -81,6 +85,7 @@ public abstract class DatabaseClient {
    * @param uuid     The UUID of the account
    * @param currency The currency to remove
    * @param amount   The amount to remove
+   *
    * @return true if successful, false otherwise
    */
   public abstract boolean removeBalance(UUID uuid, Currency currency, BigDecimal amount);
@@ -91,6 +96,7 @@ public abstract class DatabaseClient {
    * @param uuid     The UUID of the account
    * @param currency The currency to withdraw
    * @param amount   The amount to withdraw
+   *
    * @return true if successful, false otherwise
    */
   public boolean withdraw(UUID uuid, Currency currency, BigDecimal amount) {
@@ -103,6 +109,7 @@ public abstract class DatabaseClient {
    *
    * @param uuid     The UUID of the account
    * @param currency The currency to get
+   *
    * @return The balance, or null if not found
    */
   public abstract @Nullable BigDecimal getBalance(UUID uuid, Currency currency);
@@ -113,6 +120,7 @@ public abstract class DatabaseClient {
    * @param uuid     The UUID of the account
    * @param currency The currency to set
    * @param amount   The amount to set
+   *
    * @return The new balance, or null if not found
    */
   public abstract BigDecimal setBalance(UUID uuid, Currency currency, BigDecimal amount);
@@ -123,6 +131,7 @@ public abstract class DatabaseClient {
    * @param uuid     The UUID of the account
    * @param currency The currency to check
    * @param amount   The amount to check
+   *
    * @return true if the account has enough balance, false otherwise
    */
   public abstract boolean hasEnoughBalance(UUID uuid, Currency currency, BigDecimal amount);
@@ -133,6 +142,7 @@ public abstract class DatabaseClient {
    * @param currency       The currency to get
    * @param page           The page number (starting from 1)
    * @param playersPerPage
+   *
    * @return A list of accounts with the top balances
    */
   public abstract List<Account> getTopBalances(Currency currency, int page, int playersPerPage);
@@ -148,7 +158,7 @@ public abstract class DatabaseClient {
    * Create a backup of the database
    *
    */
-  public abstract void createBackUp();
+  public abstract CompletableFuture<?> createBackUp();
 
   public abstract void loadBackUp(UUID uuid);
 
@@ -162,4 +172,5 @@ public abstract class DatabaseClient {
     return existPlayerWithUUID(CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerUUIDWithName(target));
   }
 
+  public abstract List<Account> getAccounts(int limit);
 }

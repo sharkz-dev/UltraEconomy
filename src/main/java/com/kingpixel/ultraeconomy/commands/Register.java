@@ -37,6 +37,7 @@ public class Register {
       WithdrawCommand.put(base);
       SetCommand.put(base);
       BaltopCommand.put(dispatcher, base);
+      BackUpCommands.register(base);
 
       dispatcher.register(base);
     }

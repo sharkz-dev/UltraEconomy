@@ -19,10 +19,7 @@ import lombok.EqualsAndHashCode;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 
 @EqualsAndHashCode(callSuper = true)
@@ -273,8 +270,8 @@ public class SQLClient extends DatabaseClient {
   }
 
   @Override
-  public void createBackUp() {
-
+  public CompletableFuture<?> createBackUp() {
+    return CompletableFuture.completedFuture(null);
   }
 
   @Override
@@ -284,7 +281,11 @@ public class SQLClient extends DatabaseClient {
 
   @Override
   protected void cleanOldBackUps() {
-    
+
+  }
+
+  @Override public List<Account> getAccounts(int limit) {
+    return List.of();
   }
 
   private void checkAndApplyTransactions() {

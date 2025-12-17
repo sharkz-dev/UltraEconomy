@@ -20,8 +20,11 @@ import java.util.concurrent.CompletableFuture;
 public class Config {
   private static final String FILE_NAME = "config.json";
   private boolean debug;
+  private boolean web;
+  private int webPort;
   private boolean notifications;
   private boolean queueMessages;
+  private DurationValue commandCooldown;
   private DurationValue retentionBackUps;
   private DurationValue betweenMessagesDelay;
   private String lang;
@@ -34,8 +37,11 @@ public class Config {
 
   public Config() {
     debug = false;
+    web = false;
+    webPort = 8080;
     notifications = true;
     queueMessages = false;
+    commandCooldown = DurationValue.parse("500ms");
     retentionBackUps = DurationValue.parse("7d");
     betweenMessagesDelay = DurationValue.parse("1s");
     lang = "en_us";

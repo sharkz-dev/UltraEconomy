@@ -86,8 +86,8 @@ public class BaltopCommand {
 
   public static void run(CommandContext<ServerCommandSource> context, String currencyId, int page) {
     var source = context.getSource();
-    if (PlayerUtils.isCooldownMenu(source.getPlayer(), "ultraeconomy.baltop",
-      UltraEconomy.config.getBalTopCooldown())) return;
+    if (PlayerUtils.hasCooldownCommand(source.getPlayer(), "ultraeconomy.baltop", UltraEconomy.config.getBalTopCooldown()))
+      return;
     CompletableFuture.runAsync(() -> {
         Currency currency = Currencies.getCurrency(currencyId);
         if (currency == null) {

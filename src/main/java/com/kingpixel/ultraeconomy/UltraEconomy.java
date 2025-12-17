@@ -11,6 +11,7 @@ import com.kingpixel.ultraeconomy.database.DatabaseFactory;
 import com.kingpixel.ultraeconomy.manager.PlayerMessageQueueManager;
 import com.kingpixel.ultraeconomy.models.Account;
 import com.kingpixel.ultraeconomy.placeholders.PlaceHolders;
+import com.kingpixel.ultraeconomy.web.WebModule;
 import dev.architectury.event.events.common.PlayerEvent;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -24,6 +25,7 @@ public class UltraEconomy implements ModInitializer {
   public static final String MOD_ID = "ultraeconomy";
   public static final String PATH = "/config/ultraeconomy";
   public static MinecraftServer server;
+  private static final WebModule webModule = new WebModule();
   public static Config config = new Config();
   public static Lang lang = new Lang();
   public static final ExecutorService ULTRA_ECONOMY_EXECUTOR = Executors.newFixedThreadPool(4, new ThreadFactoryBuilder()
@@ -53,6 +55,8 @@ public class UltraEconomy implements ModInitializer {
 
   public static void load() {
     config.init();
+    if (config.isWeb()) webModule.start();
+
     lang.init();
     Currencies.init();
     DatabaseFactory.init(config.getDatabase());
@@ -84,6 +88,7 @@ public class UltraEconomy implements ModInitializer {
     ServerLifecycleEvents.SERVER_STOPPING.register((server) -> {
       DatabaseFactory.INSTANCE.flushCache();
       DatabaseFactory.INSTANCE.disconnect();
+      webModule.stop();
       CobbleUtils.shutdownAndAwait(ULTRA_ECONOMY_EXECUTOR);
       CobbleUtils.shutdownAndAwait(PlayerMessageQueueManager.SCHEDULER);
     });
@@ -96,5 +101,7 @@ public class UltraEconomy implements ModInitializer {
     ULTRA_ECONOMY_SCHEDULER.scheduleAtFixedRate(() -> {
       DatabaseFactory.CACHE_ACCOUNTS.asMap().values().forEach(account -> DatabaseFactory.INSTANCE.saveOrUpdateAccount(account));
     }, 60, 30, TimeUnit.SECONDS);
+
+    ULTRA_ECONOMY_SCHEDULER.scheduleAtFixedRate(() -> DatabaseFactory.INSTANCE.createBackUp(), 1, 1, TimeUnit.HOURS);
   }
 }
