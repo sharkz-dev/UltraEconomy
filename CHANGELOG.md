@@ -7,6 +7,7 @@
 - Basic economy system with coins and shop.
 - Integration with **Modrinth** and **Discord** notifications.
 - Initial setup for user permissions and roles.
+- Added web page. (incomplete, coming soon, you can activate this in the config)
 
 ### Changed
 - Project structure and dependencies updated.

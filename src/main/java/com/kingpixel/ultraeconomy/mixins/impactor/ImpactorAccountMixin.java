@@ -43,6 +43,7 @@ public abstract class ImpactorAccountMixin {
     }
   }
 
+
   @Inject(method = "withdraw(Ljava/math/BigDecimal;)" +
     "Lnet/impactdev/impactor/api/economy/transactions/EconomyTransaction;", at = @At("HEAD"), cancellable = true, remap = false)
   private void withdraw(BigDecimal amount,

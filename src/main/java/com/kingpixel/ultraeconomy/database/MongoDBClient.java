@@ -7,6 +7,7 @@ import com.kingpixel.ultraeconomy.api.UltraEconomyApi;
 import com.kingpixel.ultraeconomy.config.Currencies;
 import com.kingpixel.ultraeconomy.models.Account;
 import com.kingpixel.ultraeconomy.models.Currency;
+import com.kingpixel.ultraeconomy.models.Transaction;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoNamespace;
@@ -188,13 +189,8 @@ public class MongoDBClient extends DatabaseClient {
 
   public void addTransaction(UUID uuid, Currency currency, BigDecimal amount, TransactionType type, boolean processed) {
     CompletableFuture.runAsync(() -> {
-        Document tx = new Document(FIELD_ACCOUNT_UUID, uuid.toString())
-          .append(FIELD_CURRENCY_ID, currency.getId())
-          .append(FIELD_AMOUNT, new Decimal128(amount))
-          .append(FIELD_TYPE, type.name())
-          .append(FIELD_PROCESSED, processed)
-          .append("timestamp", Date.from(Instant.now()));
-        transactionsCollection.insertOne(tx);
+        Transaction transaction = new Transaction(uuid, currency.getId(), amount, type, processed, Instant.now());
+        transactionsCollection.insertOne(transaction.toDocument());
       }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR)
       .exceptionally(e -> {
         e.printStackTrace();
@@ -255,9 +251,18 @@ public class MongoDBClient extends DatabaseClient {
     }
   }
 
-  @Override public List<Account> getAccounts(int limit) {
+  @Override public List<Account> getAccounts(int limit, int page) {
     return accountsCollection.find().limit(limit)
+      .skip((Math.max(page - 1, 0)) * limit)
       .map(Account::fromDocument)
+      .into(new ArrayList<>());
+  }
+
+  @Override public List<Transaction> getTransactions(UUID uuid, int limit) {
+    var filter = Filters.eq(FIELD_ACCOUNT_UUID, uuid.toString());
+    return transactionsCollection.find(filter)
+      .limit(limit)
+      .map(Transaction::fromDocument)
       .into(new ArrayList<>());
   }
 

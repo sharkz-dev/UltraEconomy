@@ -6,6 +6,7 @@ import com.kingpixel.cobbleutils.util.Utils;
 import com.kingpixel.ultraeconomy.UltraEconomy;
 import com.kingpixel.ultraeconomy.models.Account;
 import com.kingpixel.ultraeconomy.models.Currency;
+import com.kingpixel.ultraeconomy.models.Transaction;
 
 import java.io.File;
 import java.io.IOException;
@@ -104,9 +105,13 @@ public class JSONClient extends DatabaseClient {
 
   }
 
-  @Override public List<Account> getAccounts(int limit) {
+  @Override public List<Account> getAccounts(int limit, int page) {
     CobbleUtils.LOGGER.warn("getAccounts is not supported in JSON database.");
     return null;
+  }
+
+  @Override public List<Transaction> getTransactions(UUID uuid, int limit) {
+    return List.of();
   }
 
   private void saveAccount(Account account) {

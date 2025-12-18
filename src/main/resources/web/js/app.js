@@ -1,13 +1,18 @@
 import { renderRoute } from './router.js'
 
-window.addEventListener('popstate', renderRoute)
+function navigateTo (url) {
+  history.pushState(null, null, url)
+  renderRoute()
+}
 
 document.addEventListener('click', e => {
   if (e.target.matches('[data-link]')) {
     e.preventDefault()
-    history.pushState(null, '', e.target.href)
-    renderRoute()
+    navigateTo(e.target.href)
   }
 })
 
+window.addEventListener('popstate', renderRoute)
+
+// Render inicial
 renderRoute()

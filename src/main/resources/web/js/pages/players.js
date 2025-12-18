@@ -42,6 +42,7 @@ export function PlayersPage () {
         <button id="prevPageBtnBottom" class="mx-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors duration-300" onclick="prevPage()">Previous</button>
         <button id="nextPageBtnBottom" class="mx-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors duration-300" onclick="nextPage()">Next</button>
       </div>
+      
     </div>
   `
 }

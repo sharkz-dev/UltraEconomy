@@ -5,5 +5,5 @@ export async function apiGet (path) {
 }
 
 function debugUrl () {
-  return true ? 'http://127.0.0.1:8080' : ''
+  return false ? 'http://127.0.0.1:8080' : ''
 }

@@ -5,6 +5,7 @@ import com.kingpixel.cobbleutils.command.suggests.CobbleUtilsSuggests;
 import com.kingpixel.ultraeconomy.api.UltraEconomyApi;
 import com.kingpixel.ultraeconomy.models.Account;
 import com.kingpixel.ultraeconomy.models.Currency;
+import com.kingpixel.ultraeconomy.models.Transaction;
 
 import javax.annotation.Nullable;
 import java.math.BigDecimal;
@@ -172,5 +173,10 @@ public abstract class DatabaseClient {
     return existPlayerWithUUID(CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerUUIDWithName(target));
   }
 
-  public abstract List<Account> getAccounts(int limit);
+  // API for web server
+  public abstract List<Account> getAccounts(int limit, int page);
+
+  public abstract List<Transaction> getTransactions(UUID uuid, int limit);
+
+
 }

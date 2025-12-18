@@ -12,6 +12,7 @@ import com.kingpixel.ultraeconomy.exceptions.DatabaseConnectionException;
 import com.kingpixel.ultraeconomy.exceptions.UnknownAccountException;
 import com.kingpixel.ultraeconomy.models.Account;
 import com.kingpixel.ultraeconomy.models.Currency;
+import com.kingpixel.ultraeconomy.models.Transaction;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -284,7 +285,11 @@ public class SQLClient extends DatabaseClient {
 
   }
 
-  @Override public List<Account> getAccounts(int limit) {
+  @Override public List<Account> getAccounts(int limit, int page) {
+    return List.of();
+  }
+
+  @Override public List<Transaction> getTransactions(UUID uuid, int limit) {
     return List.of();
   }
 

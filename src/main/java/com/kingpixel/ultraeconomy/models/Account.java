@@ -130,8 +130,13 @@ public class Account {
   }
 
   public void fix() {
-    Currencies.getCurrencyMap().forEach((k, v) ->
+    var map = Currencies.getCurrencyMap();
+    map.forEach((k, v) ->
       balances.putIfAbsent(v.getId(), v.getDefaultBalance()));
+    // Remove ilegal currencies
+    //List<String> keys = new ArrayList<>();
+    //map.forEach((k, v) -> keys.add(v.getId()));
+    //balances.keySet().removeIf(key -> !keys.contains(key));
   }
 
   private ConcurrentHashMap<String, BigDecimal> defaultBalances() {

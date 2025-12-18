@@ -1,5 +1,4 @@
 import { Navbar } from '../components/navbar.js'
-import { Card } from '../components/infoCard.js'
 import { apiGet } from '../api.js'
 
 export function DashboardPage () {
@@ -8,9 +7,6 @@ export function DashboardPage () {
   return `
     ${Navbar()}
     <div class="container">
-      <h2>Dashboard</h2>
-      <div class="grid">
-      </div>
     </div>
   `
 }
