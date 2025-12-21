@@ -8,6 +8,7 @@
 - Integration with **Modrinth** and **Discord** notifications.
 - Initial setup for user permissions and roles.
 - Added web page. This need activate in the config. (http://yourserver:port).
+- Improved the migration system from previous economy mods.
 
 ### Changed
 - Project structure and dependencies updated.
