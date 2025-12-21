@@ -1,12 +1,12 @@
 package com.kingpixel.ultraeconomy.models;
 
 import com.kingpixel.cobbleutils.CobbleUtils;
-import com.kingpixel.cobbleutils.Model.EconomyUse;
 import com.kingpixel.cobbleutils.api.EconomyApi;
 import com.kingpixel.cobbleutils.command.suggests.CobbleUtilsSuggests;
 import com.kingpixel.ultraeconomy.UltraEconomy;
 import com.kingpixel.ultraeconomy.api.UltraEconomyApi;
 import com.kingpixel.ultraeconomy.mixins.UserCacheMixin;
+import com.kingpixel.ultraeconomy.models.migration.Migration;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -19,21 +19,13 @@ import java.util.concurrent.CompletableFuture;
 @Data
 public class MigrationConfig {
   private boolean active;
-  private String economyId;
-  private List<EconomyUse> economyUses;
-  private List<String> currencyIds;
+  private List<Migration> migrations;
 
   public MigrationConfig() {
     active = false;
-    economyId = "IMPACTOR";
-    economyUses = List.of(
-      new EconomyUse(
-        "IMPACTOR",
-        "impactor:dollars"
-      )
-    );
-    currencyIds = List.of(
-      "dollars"
+    migrations = List.of(
+      new Migration("IMPACTOR", "impactor:dollars", "dollars"),
+      new Migration("IMPACTOR", "impactor:tokens", "tokens")
     );
   }
 
@@ -47,14 +39,9 @@ public class MigrationConfig {
         long start = System.currentTimeMillis();
         CobbleUtils.LOGGER.info("Migration started ->");
         CobbleUtils.LOGGER.info("Order of economy uses:");
-        for (var use : economyUses) {
-          CobbleUtils.LOGGER.info("- " + use.getEconomyId() + " -> " + use.getCurrency());
+        for (var use : migrations) {
+          CobbleUtils.LOGGER.info("- " + use.getEconomyId() + " -> " + use.getMigrationToCurrencyId());
         }
-        CobbleUtils.LOGGER.info("Order of UltraEconomy currencies:");
-        for (var currencyId : currencyIds) {
-          CobbleUtils.LOGGER.info("- " + currencyId);
-        }
-
         var playerUUIDs = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerUUIDs();
         var userCache = UltraEconomy.server.getUserCache();
         Set<UUID> missingUUIDs = new HashSet<>();
@@ -63,7 +50,7 @@ public class MigrationConfig {
         fusionUUIDs.addAll(missingUUIDs);
         fusionUUIDs.addAll(playerUUIDs);
 
-        for (var uuid : playerUUIDs) {
+        for (var uuid : fusionUUIDs) {
           // Obtener o crear cuenta
           var account = UltraEconomyApi.getAccount(uuid);
           if (account == null) {
@@ -71,13 +58,11 @@ public class MigrationConfig {
             UltraEconomyApi.saveAccount(account);
           }
           UltraEconomyApi.getAccount(account.getPlayerUUID());
-          // Migrar balances
-          int size = economyUses.size();
-          for (int i = 0; i < size; i++) {
-            var economyUse = economyUses.get(i);
-            var currencyId = currencyIds.get(Math.min(i, currencyIds.size() - 1)); // evita IndexOutOfBounds
 
-            BigDecimal balance = EconomyApi.getBalance(uuid, economyUse);
+          for (Migration migration : migrations) {
+            String currencyId = migration.getMigrationToCurrencyId();
+
+            BigDecimal balance = EconomyApi.getBalance(uuid, migration.toEconomyUse());
 
             if (balance == null) {
               CobbleUtils.LOGGER.warn("Balance for player " + uuid + " is null, skipping");

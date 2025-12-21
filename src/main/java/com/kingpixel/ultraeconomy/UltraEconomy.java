@@ -28,7 +28,7 @@ public class UltraEconomy implements ModInitializer {
   private static final WebModule webModule = new WebModule();
   public static Config config = new Config();
   public static Lang lang = new Lang();
-  public static final ExecutorService ULTRA_ECONOMY_EXECUTOR = Executors.newFixedThreadPool(4, new ThreadFactoryBuilder()
+  public static final ExecutorService ULTRA_ECONOMY_EXECUTOR = Executors.newFixedThreadPool(2, new ThreadFactoryBuilder()
     .setNameFormat("ultra economy-executor-%d")
     .setDaemon(true)
     .build()
