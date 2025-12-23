@@ -19,34 +19,33 @@ public class PlayerApiServlet extends HttpServlet {
 
     resp.setContentType("application/json");
 
-    // Obtener /{uuid}
+    // Obtener /{uuidOrName}
     String pathInfo = req.getPathInfo();
-
     if (pathInfo == null || pathInfo.length() <= 1) {
       resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-      resp.getWriter().write("{\"error\":\"UUID del jugador requerido\"}");
+      resp.getWriter().write("{\"error\":\"UUID or player name required\"}");
       return;
     }
 
-    UUID playerUuid;
+    String identifier = pathInfo.substring(1); // quitar "/"
+    Object account = null;
+
+    // Primero intentamos parsear como UUID
     try {
-      playerUuid = UUID.fromString(pathInfo.substring(1));
+      UUID playerUuid = UUID.fromString(identifier);
+      account = DatabaseFactory.INSTANCE.getAccount(playerUuid);
     } catch (IllegalArgumentException e) {
-      resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-      resp.getWriter().write("{\"error\":\"UUID inválido\"}");
-      return;
+      // Si no es UUID, lo tratamos como nombre
+      account = DatabaseFactory.INSTANCE.getAccountByName(identifier);
     }
-
-    var account = DatabaseFactory.INSTANCE.getAccount(playerUuid);
 
     if (account == null) {
       resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
-      resp.getWriter().write("{\"error\":\"Jugador no encontrado\"}");
+      resp.getWriter().write("{\"error\":\"Player not found\"}");
       return;
     }
 
-    var json = Utils.newWithoutSpacingGson().toJson(account);
-
+    String json = Utils.newWithoutSpacingGson().toJson(account);
     resp.setStatus(HttpServletResponse.SC_OK);
     resp.getWriter().write(json);
   }

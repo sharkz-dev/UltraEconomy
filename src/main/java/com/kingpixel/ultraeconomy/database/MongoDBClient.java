@@ -266,6 +266,15 @@ public class MongoDBClient extends DatabaseClient {
       .into(new ArrayList<>());
   }
 
+  @Override public Account getAccountByName(String name) {
+    var filter = Filters.eq(FIELD_PLAYER_NAME, name);
+    Document doc = accountsCollection.find(filter).first();
+    if (doc != null) {
+      return Account.fromDocument(doc);
+    }
+    return null;
+  }
+
 
   @Override
   public void loadBackUp(UUID backupUUID) {

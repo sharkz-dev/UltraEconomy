@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -112,6 +113,10 @@ public class JSONClient extends DatabaseClient {
 
   @Override public List<Transaction> getTransactions(UUID uuid, int limit) {
     return List.of();
+  }
+
+  @Override public Account getAccountByName(String name) {
+    return getAccount(Objects.requireNonNull(CobbleUtils.server.getUserCache().findByName(name).orElse(null)).getId());
   }
 
   private void saveAccount(Account account) {

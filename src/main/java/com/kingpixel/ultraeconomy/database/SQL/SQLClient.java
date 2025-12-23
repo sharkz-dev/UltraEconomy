@@ -293,6 +293,10 @@ public class SQLClient extends DatabaseClient {
     return List.of();
   }
 
+  @Override public Account getAccountByName(String name) {
+    return null;
+  }
+
   private void checkAndApplyTransactions() {
     if (!runningTransactions) return;
 

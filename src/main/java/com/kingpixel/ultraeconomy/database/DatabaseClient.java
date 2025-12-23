@@ -178,5 +178,5 @@ public abstract class DatabaseClient {
 
   public abstract List<Transaction> getTransactions(UUID uuid, int limit);
 
-
+  public abstract Account getAccountByName(String name);
 }
