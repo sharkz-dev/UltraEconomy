@@ -36,6 +36,9 @@ public class UltraEconomyMixinPlugin implements IMixinConfigPlugin {
       if (FabricLoader.getInstance().isModLoaded("beconomy") && mixinClassName.contains("Beconomy") || mixinClassName.contains("BlanketEconomyAPI")) {
         return true;
       }
+      if (FabricLoader.getInstance().isModLoaded("cobbledollars") && mixinClassName.contains("CobbleDollars")) {
+        return true;
+      }
       return true;
     } catch (Exception e) {
       e.printStackTrace();

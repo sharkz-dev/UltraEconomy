@@ -6,6 +6,7 @@
   "mixins": [
     "UserCacheMixin",
     "beconomy.BeconomyServiceMixin",
+    "cobbledollars.CobbleDollarsMixin",
     "impactor.ImpactorAccountMixin",
     "impactor.ImpactorCurrencyMixin"
   ],

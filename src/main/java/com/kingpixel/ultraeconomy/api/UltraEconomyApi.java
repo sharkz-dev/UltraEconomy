@@ -179,7 +179,7 @@ public class UltraEconomyApi {
    *
    * @return the balance, or null if the currency does not exist
    */
-  public static @Nullable BigDecimal getBalance(@NotNull UUID uuid, @NotNull String currency) {
+  public static BigDecimal getBalance(@NotNull UUID uuid, @NotNull String currency) {
     if (VaultService.isPresent() && isPrimaryCurrency(currency)) {
       return VaultService.getBalance(uuid, currency);
     } else {
