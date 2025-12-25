@@ -2,7 +2,6 @@ package com.kingpixel.ultraeconomy.config;
 
 import com.kingpixel.cobbleutils.util.Utils;
 import com.kingpixel.ultraeconomy.UltraEconomy;
-import com.kingpixel.ultraeconomy.exceptions.UnknownCurrencyException;
 import com.kingpixel.ultraeconomy.models.Currency;
 
 import java.util.HashMap;
@@ -92,10 +91,9 @@ public class Currencies {
     Utils.writeFileAsync(PATH, currency.getId() + ".json", data);
   }
 
-  public static Currency getCurrency(String currency) throws UnknownCurrencyException {
+  public static Currency getCurrency(String currency) {
     var curr = CURRENCY_MAP.get(currency);
     if (curr == null) curr = DEFAULT_CURRENCY;
-    if (curr == null) throw new UnknownCurrencyException(currency);
     return curr;
   }
 

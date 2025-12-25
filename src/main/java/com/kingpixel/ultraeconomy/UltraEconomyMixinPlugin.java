@@ -21,29 +21,32 @@ public class UltraEconomyMixinPlugin implements IMixinConfigPlugin {
 
   @Override
   public String getRefMapperConfig() {
-    return "";
+    return null;
   }
+
 
   @Override
   public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-    try {
-      if (UserCacheMixin.class.getName().equals(targetClassName)) {
-        return true;
-      }
-      if (FabricLoader.getInstance().isModLoaded("impactor") && mixinClassName.contains("Impactor")) {
-        return true;
-      }
-      if (FabricLoader.getInstance().isModLoaded("beconomy") && mixinClassName.contains("Beconomy") || mixinClassName.contains("BlanketEconomyAPI")) {
-        return true;
-      }
-      if (FabricLoader.getInstance().isModLoaded("cobbledollars") && mixinClassName.contains("CobbleDollars")) {
-        return true;
-      }
+
+    if (mixinClassName.equals(UserCacheMixin.class.getName())) {
       return true;
-    } catch (Exception e) {
-      e.printStackTrace();
-      return false;
     }
+
+    if (mixinClassName.contains("Impactor")) {
+      return FabricLoader.getInstance().isModLoaded("impactor");
+    }
+
+    if (mixinClassName.contains("Beconomy")
+      || mixinClassName.contains("BlanketEconomyAPI")) {
+      return FabricLoader.getInstance().isModLoaded("beconomy");
+    }
+
+    if (mixinClassName.contains("CobbleDollars")) {
+      return FabricLoader.getInstance().isModLoaded("cobbledollars");
+    }
+
+    // Por defecto NO aplicar
+    return false;
   }
 
 
