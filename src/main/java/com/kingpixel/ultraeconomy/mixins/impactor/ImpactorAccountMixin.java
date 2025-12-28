@@ -30,7 +30,8 @@ public abstract class ImpactorAccountMixin {
     return currencyIdCache.computeIfAbsent(currency, c -> UltraEconomyApi.getCurrency(c.key().value())).getId();
   }
 
-  @Inject(method = "deposit(Ljava/math/BigDecimal;)Lnet/impactdev/impactor/api/economy/transactions/EconomyTransaction;", at = @At("HEAD"), remap = false)
+  @Inject(method = "deposit(Ljava/math/BigDecimal;)Lnet/impactdev/impactor/api/economy/transactions" +
+    "/EconomyTransaction;", at = @At("HEAD"), cancellable = true, remap = false)
   private void depositAsync(BigDecimal amount, CallbackInfoReturnable<EconomyTransaction> cir) {
     if (UltraEconomy.migrationDone) {
       ImpactorAccount self = (ImpactorAccount) (Object) this;

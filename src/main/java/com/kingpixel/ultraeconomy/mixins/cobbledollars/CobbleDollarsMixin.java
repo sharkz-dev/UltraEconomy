@@ -22,7 +22,7 @@ public abstract class CobbleDollarsMixin {
    *
    * @author Carlos Varas Alonso - 28/09/2025 4:40
    * @reason UltraEconomy migration
-   */
+   *
   @Unique @Overwrite
   public @NotNull BigInteger cobbleDollars$getCobbleDollars() {
     PlayerEntity player = (PlayerEntity) (Object) this;
@@ -38,7 +38,7 @@ public abstract class CobbleDollarsMixin {
    *
    * @author Carlos Varas Alonso - 28/09/2025 4:40
    * @reason UltraEconomy migration
-   */
+   *
   @Unique @Overwrite
   public void cobbleDollars$setCobbleDollars(@NotNull BigInteger amount) {
     if (UltraEconomy.migrationDone) {
