@@ -4,10 +4,7 @@ import com.kingpixel.cobbleutils.util.Utils;
 import com.kingpixel.ultraeconomy.UltraEconomy;
 import com.kingpixel.ultraeconomy.models.Currency;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Carlos Varas Alonso - 23/09/2025 21:37
@@ -24,16 +21,20 @@ public class Currencies {
     folder.mkdirs();
     var files = Utils.getFiles(folder);
     if (files.isEmpty()) {
-      Currency currency = new Currency(true, (byte) 2, "$", new String[]{
-        "impactor:dollars"
-      });
+      Currency currency = new Currency(true, (byte) 2, "$", new ArrayList<>(
+        List.of(
+          "impactor:dollars"
+        )
+      ));
       currency.setId("dollars");
       currency.fix();
       CURRENCY_MAP.put(currency.getId(), currency);
       writeCurrency(currency);
-      Currency currency2 = new Currency(false, (byte) 2, "t", new String[]{
-        "impactor:tokens"
-      });
+      Currency currency2 = new Currency(false, (byte) 2, "t", new ArrayList<>(
+        List.of(
+          "impactor:tokens"
+        )
+      ));
       currency2.setId("tokens");
       CURRENCY_MAP.put(currency2.getId(), currency2);
       writeCurrency(currency2);
@@ -56,6 +57,8 @@ public class Currencies {
     Map<String, Currency> aliases = new HashMap<>();
     for (Currency currency : CURRENCY_MAP.values()) {
       if (currency.getCurrencyIds() != null) {
+        String impactorKey = "impactor:" + currency.getId();
+        if (!currency.getCurrencyIds().contains(impactorKey)) currency.getCurrencyIds().add(impactorKey);
         for (String alias : currency.getCurrencyIds()) {
           aliases.put(alias, currency);
         }

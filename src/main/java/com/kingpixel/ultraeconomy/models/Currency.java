@@ -13,6 +13,8 @@ import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,7 +40,7 @@ public class Currency {
   private String singular;
   private String plural;
   private String[] suffixes;
-  private String[] currencyIds;
+  private List<String> currencyIds;
 
   // Thread-safe caches for formatted strings and Text objects
   transient
@@ -63,15 +65,15 @@ public class Currency {
     this.singular = "Dollar";
     this.plural = "Dollars";
     this.suffixes = new String[]{"", "K", "M", "B", "T"};
-    this.currencyIds = new String[]{};
+    this.currencyIds = new ArrayList<>();
   }
 
-  public Currency(boolean primary, byte decimals, String symbol, String[] currencyIds) {
+  public Currency(boolean primary, byte decimals, String symbol, List<String> currencyIds) {
     this.format = "<symbol>&6<amount> <name>";
     this.singular = "Dollar";
     this.plural = "Dollars";
     this.suffixes = new String[]{"", "K", "M", "B", "T"};
-    this.currencyIds = new String[]{};
+    this.currencyIds = new ArrayList<>();
     this.primary = primary;
     this.transferable = true;
     this.decimals = decimals;
@@ -103,7 +105,7 @@ public class Currency {
       this.symbol = "$";
     }
     if (this.currencyIds == null) {
-      this.currencyIds = new String[]{};
+      this.currencyIds = new ArrayList<>();
     }
   }
 
