@@ -44,8 +44,8 @@ public class Currencies {
           var currency = Utils.newGson().fromJson(
             Utils.readFileSync(file), Currency.class
           );
-          currency.fix();
           currency.setId(file.getName().replace(".json", ""));
+          currency.fix();
           CURRENCY_MAP.put(currency.getId(), currency);
           writeCurrency(currency);
         } catch (Exception e) {
@@ -57,8 +57,6 @@ public class Currencies {
     Map<String, Currency> aliases = new HashMap<>();
     for (Currency currency : CURRENCY_MAP.values()) {
       if (currency.getCurrencyIds() != null) {
-        String impactorKey = "impactor:" + currency.getId();
-        if (!currency.getCurrencyIds().contains(impactorKey)) currency.getCurrencyIds().add(impactorKey);
         for (String alias : currency.getCurrencyIds()) {
           aliases.put(alias, currency);
         }

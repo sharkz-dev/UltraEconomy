@@ -107,6 +107,10 @@ public class Currency {
     if (this.currencyIds == null) {
       this.currencyIds = new ArrayList<>();
     }
+    String impactorKey = "impactor:" + getId();
+    if (!this.currencyIds.contains(impactorKey)) {
+      this.currencyIds.add(impactorKey);
+    }
   }
 
   /**
