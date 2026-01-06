@@ -48,7 +48,7 @@ public class DatabaseFactory {
       default ->
         throw new DatabaseConnectionException("Unknown database type " + Arrays.toString(DataBaseType.values()));
     }
-    INSTANCE.connect(config);
+    if (INSTANCE != null) INSTANCE.connect(config);
   }
 
   public static boolean isConnected() {

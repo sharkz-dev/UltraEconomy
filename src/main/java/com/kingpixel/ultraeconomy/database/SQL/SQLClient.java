@@ -285,17 +285,113 @@ public class SQLClient extends DatabaseClient {
 
   }
 
-  @Override public List<Account> getAccounts(int limit, int page) {
-    return List.of();
+  @Override
+  public List<Account> getAccounts(int limit, int page) {
+    List<Account> accounts = new ArrayList<>();
+    int offset = (page - 1) * limit;
+
+    String query = "SELECT uuid, player_name FROM accounts LIMIT ? OFFSET ?";
+
+    try (Connection conn = dataSource.getConnection();
+         PreparedStatement stmt = conn.prepareStatement(query)) {
+      stmt.setInt(1, limit);
+      stmt.setInt(2, offset);
+      ResultSet rs = stmt.executeQuery();
+
+      while (rs.next()) {
+        UUID uuid = UUID.fromString(rs.getString("uuid"));
+        String playerName = rs.getString("player_name");
+
+        Map<String, BigDecimal> balances = new HashMap<>();
+        try (PreparedStatement balStmt = conn.prepareStatement(SQLSentences.selectBalancesByUUID())) {
+          balStmt.setString(1, uuid.toString());
+          ResultSet balRs = balStmt.executeQuery();
+          while (balRs.next()) {
+            balances.put(balRs.getString("currency_id"), balRs.getBigDecimal(KEY_AMOUNT));
+          }
+        }
+
+        accounts.add(new Account(uuid, playerName, balances));
+      }
+    } catch (SQLException e) {
+      CobbleUtils.LOGGER.error("Error fetching accounts");
+      e.printStackTrace();
+    }
+
+    return accounts;
   }
 
-  @Override public List<Transaction> getTransactions(UUID uuid, int limit) {
-    return List.of();
+  @Override
+  public List<Transaction> getTransactions(UUID uuid, int limit) {
+    List<Transaction> transactions = new ArrayList<>();
+    String query = "SELECT id, currency_id, amount, type, timestamp, processed FROM transactions WHERE account_uuid = ? ORDER BY timestamp DESC LIMIT ?";
+
+    try (Connection conn = dataSource.getConnection();
+         PreparedStatement stmt = conn.prepareStatement(query)) {
+      stmt.setString(1, uuid.toString());
+      stmt.setInt(2, limit);
+      ResultSet rs = stmt.executeQuery();
+
+      while (rs.next()) {
+        long id = rs.getLong("id");
+        String currencyId = rs.getString("currency_id");
+        BigDecimal amount = rs.getBigDecimal(KEY_AMOUNT);
+        TransactionType type = TransactionType.valueOf(rs.getString("type"));
+        Timestamp timestamp = rs.getTimestamp("timestamp");
+        boolean processed = rs.getBoolean("processed");
+
+        var transaction = Transaction.builder()
+          .accountUUID(uuid)
+          .amount(amount)
+          .currency(currencyId)
+          .type(type)
+          .processed(processed)
+          .timestamp(timestamp.toInstant())
+          .build();
+
+        transactions.add(transaction);
+      }
+    } catch (SQLException e) {
+      CobbleUtils.LOGGER.error("Error fetching transactions for " + uuid);
+      e.printStackTrace();
+    }
+
+    return transactions;
   }
 
-  @Override public Account getAccountByName(String name) {
+  @Override
+  public Account getAccountByName(String name) {
+    String query = "SELECT uuid, player_name FROM accounts WHERE player_name = ?";
+
+    try (Connection conn = dataSource.getConnection();
+         PreparedStatement stmt = conn.prepareStatement(query)) {
+      stmt.setString(1, name);
+      ResultSet rs = stmt.executeQuery();
+
+      if (rs.next()) {
+        UUID uuid = UUID.fromString(rs.getString("uuid"));
+        Map<String, BigDecimal> balances = new HashMap<>();
+
+        try (PreparedStatement balStmt = conn.prepareStatement(SQLSentences.selectBalancesByUUID())) {
+          balStmt.setString(1, uuid.toString());
+          ResultSet balRs = balStmt.executeQuery();
+          while (balRs.next()) {
+            balances.put(balRs.getString("currency_id"), balRs.getBigDecimal(KEY_AMOUNT));
+          }
+        }
+
+        Account account = new Account(uuid, name, balances);
+        DatabaseFactory.CACHE_ACCOUNTS.put(uuid, account); // Cacheamos la cuenta
+        return account;
+      }
+    } catch (SQLException e) {
+      CobbleUtils.LOGGER.error("Error fetching account by name " + name);
+      e.printStackTrace();
+    }
+
     return null;
   }
+
 
   private void checkAndApplyTransactions() {
     if (!runningTransactions) return;

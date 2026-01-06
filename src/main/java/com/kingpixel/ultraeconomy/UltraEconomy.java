@@ -55,8 +55,10 @@ public class UltraEconomy implements ModInitializer {
 
   public static void load() {
     config.init();
-    if (config.isWeb()) webModule.start();
-
+    if (config.isWeb()) {
+      webModule.stop();
+      webModule.start();
+    }
     lang.init();
     Currencies.init();
     DatabaseFactory.init(config.getDatabase());
