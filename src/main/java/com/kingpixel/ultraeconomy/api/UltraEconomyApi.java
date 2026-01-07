@@ -76,7 +76,7 @@ public class UltraEconomyApi {
   }
 
   private static void aggressiveSave(UUID playerUUID) {
-    var account = DatabaseFactory.CACHE_ACCOUNTS.getIfPresent(playerUUID);
+    var account = DatabaseFactory.ACCOUNTS.getIfPresent(playerUUID);
     if (account != null) saveAccount(account);
   }
 

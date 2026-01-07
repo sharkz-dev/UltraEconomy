@@ -14,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 public class DatabaseFactory {
   /**
@@ -22,9 +23,9 @@ public class DatabaseFactory {
    * Maximum size of 1000 accounts
    * On removal, save or update the account in the database
    */
-  public static final Cache<@NotNull UUID, Account> CACHE_ACCOUNTS = Caffeine
+  public static final Cache<@NotNull UUID, Account> ACCOUNTS = Caffeine
     .newBuilder()
-    .maximumSize(1000)
+    .expireAfterAccess(5, TimeUnit.SECONDS)
     .removalListener((key, value, cause) -> {
       if (cause.equals(RemovalCause.REPLACED) || UltraEconomy.server.isStopping() || UltraEconomy.server.isStopped())
         return;

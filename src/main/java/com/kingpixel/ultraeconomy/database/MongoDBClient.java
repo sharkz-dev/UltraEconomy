@@ -120,7 +120,7 @@ public class MongoDBClient extends DatabaseClient {
 
   @Override
   public void disconnect() {
-    DatabaseFactory.CACHE_ACCOUNTS.invalidateAll();
+    DatabaseFactory.ACCOUNTS.invalidateAll();
     if (transactionExecutor != null) {
       runningTransactions = false;
       CobbleUtils.shutdownAndAwait(transactionExecutor);
@@ -133,7 +133,7 @@ public class MongoDBClient extends DatabaseClient {
 
   @Override
   public void invalidate(UUID playerUUID) {
-    DatabaseFactory.CACHE_ACCOUNTS.invalidate(playerUUID);
+    DatabaseFactory.ACCOUNTS.invalidate(playerUUID);
   }
 
   @Override
@@ -143,7 +143,7 @@ public class MongoDBClient extends DatabaseClient {
 
   @Override
   public Account getAccount(UUID uuid) {
-    Account cached = DatabaseFactory.CACHE_ACCOUNTS.getIfPresent(uuid);
+    Account cached = DatabaseFactory.ACCOUNTS.getIfPresent(uuid);
     if (cached != null) return cached;
 
     Document doc = accountsCollection.find(Filters.eq(FIELD_UUID, uuid.toString())).first();
@@ -319,7 +319,7 @@ public class MongoDBClient extends DatabaseClient {
           new RenameCollectionOptions().dropTarget(true)
         );
 
-        DatabaseFactory.CACHE_ACCOUNTS.invalidateAll();
+        DatabaseFactory.ACCOUNTS.invalidateAll();
 
         CobbleUtils.LOGGER.info("♻ Backup restored successfully: " + backupUUID);
 
@@ -401,7 +401,7 @@ public class MongoDBClient extends DatabaseClient {
         }
 
         saveOrUpdateAccount(account);
-        DatabaseFactory.CACHE_ACCOUNTS.put(uuid, account);
+        DatabaseFactory.ACCOUNTS.put(uuid, account);
 
         if (CobbleUtils.config.isDebug()) {
           CobbleUtils.LOGGER.info("Processed transaction: " + tx.toJson());
@@ -514,6 +514,6 @@ public class MongoDBClient extends DatabaseClient {
 
 
   public Account getCachedAccount(UUID uuid) {
-    return DatabaseFactory.CACHE_ACCOUNTS.getIfPresent(uuid);
+    return DatabaseFactory.ACCOUNTS.getIfPresent(uuid);
   }
 }

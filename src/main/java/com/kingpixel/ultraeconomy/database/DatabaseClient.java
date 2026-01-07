@@ -166,7 +166,7 @@ public abstract class DatabaseClient {
   protected abstract void cleanOldBackUps();
 
   public void flushCache() {
-    DatabaseFactory.CACHE_ACCOUNTS.asMap().forEach((uuid, account) -> UltraEconomyApi.saveAccountSync(account));
+    DatabaseFactory.ACCOUNTS.asMap().forEach((uuid, account) -> UltraEconomyApi.saveAccountSync(account));
   }
 
   public boolean existPlayerWithName(String target) {

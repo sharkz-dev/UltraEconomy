@@ -73,12 +73,12 @@ public class SQLClient extends DatabaseClient {
 
   @Override
   public void invalidate(UUID playerUUID) {
-    DatabaseFactory.CACHE_ACCOUNTS.invalidate(playerUUID);
+    DatabaseFactory.ACCOUNTS.invalidate(playerUUID);
   }
 
   @Override
   public Account getAccount(UUID uuid) {
-    Account cached = DatabaseFactory.CACHE_ACCOUNTS.getIfPresent(uuid);
+    Account cached = DatabaseFactory.ACCOUNTS.getIfPresent(uuid);
     if (cached != null) return cached;
 
     try (Connection conn = dataSource.getConnection()) {
@@ -103,7 +103,7 @@ public class SQLClient extends DatabaseClient {
           } else return null;
         }
       }
-      DatabaseFactory.CACHE_ACCOUNTS.put(uuid, account);
+      DatabaseFactory.ACCOUNTS.put(uuid, account);
       return account;
     } catch (SQLException e) {
       throw new UnknownAccountException(uuid);
@@ -153,6 +153,7 @@ public class SQLClient extends DatabaseClient {
     boolean result = false;
     if (account == null) {
       addTransaction(uuid, currency, amount, TransactionType.DEPOSIT, false);
+      result = true;
     } else {
       result = account.addBalance(currency, amount);
       if (result) addTransaction(uuid, currency, amount, TransactionType.DEPOSIT, true);
@@ -166,6 +167,7 @@ public class SQLClient extends DatabaseClient {
     boolean result = false;
     if (account == null) {
       addTransaction(uuid, currency, amount, TransactionType.WITHDRAW, false);
+      result = true;
     } else {
       result = account.removeBalance(currency, amount);
       if (result) addTransaction(uuid, currency, amount, TransactionType.WITHDRAW, true);
@@ -190,7 +192,7 @@ public class SQLClient extends DatabaseClient {
     asyncExecutor.submit(() -> {
       try {
         saveBalance(uuid, currency, amount);
-        DatabaseFactory.CACHE_ACCOUNTS.invalidate(uuid);
+        DatabaseFactory.ACCOUNTS.invalidate(uuid);
       } catch (SQLException e) {
         CobbleUtils.LOGGER.error("Error saving balance for " + uuid);
         e.printStackTrace();
@@ -253,7 +255,7 @@ public class SQLClient extends DatabaseClient {
 
 
   public void addTransaction(UUID uuid, Currency currency, BigDecimal amount, TransactionType type, boolean processed) {
-    asyncExecutor.submit(() -> {
+    asyncExecutor.execute(() -> {
       String query = SQLSentences.insertTransaction();
       try (Connection conn = dataSource.getConnection();
            PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -381,7 +383,7 @@ public class SQLClient extends DatabaseClient {
         }
 
         Account account = new Account(uuid, name, balances);
-        DatabaseFactory.CACHE_ACCOUNTS.put(uuid, account); // Cacheamos la cuenta
+        DatabaseFactory.ACCOUNTS.put(uuid, account); // Cacheamos la cuenta
         return account;
       }
     } catch (SQLException e) {
@@ -402,7 +404,7 @@ public class SQLClient extends DatabaseClient {
         ResultSet rs = stmt.executeQuery();
         while (rs.next()) {
           UUID uuid = UUID.fromString(rs.getString("account_uuid"));
-          Account account = DatabaseFactory.CACHE_ACCOUNTS.getIfPresent(uuid);
+          Account account = DatabaseFactory.ACCOUNTS.getIfPresent(uuid);
           if (account == null) continue;
 
           long id = rs.getLong("id");
@@ -428,7 +430,7 @@ public class SQLClient extends DatabaseClient {
             update.executeUpdate();
           }
 
-          DatabaseFactory.CACHE_ACCOUNTS.put(uuid, account);
+          DatabaseFactory.ACCOUNTS.put(uuid, account);
         }
       } catch (SQLException e) {
         CobbleUtils.LOGGER.error("Error processing transactions");
@@ -543,7 +545,7 @@ public class SQLClient extends DatabaseClient {
   }
 
   public Account getCachedAccount(UUID uuid) {
-    return DatabaseFactory.CACHE_ACCOUNTS.getIfPresent(uuid);
+    return DatabaseFactory.ACCOUNTS.getIfPresent(uuid);
   }
 
   @Override

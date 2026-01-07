@@ -68,7 +68,7 @@ public class UltraEconomy implements ModInitializer {
     PlayerEvent.PLAYER_JOIN.register((player) -> CompletableFuture.runAsync(() -> {
         Account account = DatabaseFactory.INSTANCE.getAccount(player.getUuid());
         account.setPlayerName(player.getGameProfile().getName());
-        DatabaseFactory.CACHE_ACCOUNTS.put(player.getUuid(), account);
+        DatabaseFactory.ACCOUNTS.put(player.getUuid(), account);
         account.fix();
         DatabaseFactory.INSTANCE.saveOrUpdateAccount(account);
       }, ULTRA_ECONOMY_EXECUTOR)
@@ -79,7 +79,7 @@ public class UltraEconomy implements ModInitializer {
 
     PlayerEvent.PLAYER_QUIT.register((player) -> {
       if (server.isStopped() || server.isStopping()) return;
-      DatabaseFactory.CACHE_ACCOUNTS.invalidate(player.getUuid());
+      DatabaseFactory.ACCOUNTS.invalidate(player.getUuid());
     });
 
     ServerLifecycleEvents.SERVER_STARTED.register((server) -> {
@@ -100,9 +100,7 @@ public class UltraEconomy implements ModInitializer {
 
   private void tasks() {
     // Aquí puedes agregar tareas programadas si es necesario
-    ULTRA_ECONOMY_SCHEDULER.scheduleAtFixedRate(() -> {
-      DatabaseFactory.CACHE_ACCOUNTS.asMap().values().forEach(account -> DatabaseFactory.INSTANCE.saveOrUpdateAccount(account));
-    }, 60, 30, TimeUnit.SECONDS);
+    ULTRA_ECONOMY_SCHEDULER.scheduleAtFixedRate(() -> DatabaseFactory.ACCOUNTS.asMap().values().forEach(account -> DatabaseFactory.INSTANCE.saveOrUpdateAccount(account)), 60, 30, TimeUnit.SECONDS);
 
     ULTRA_ECONOMY_SCHEDULER.scheduleAtFixedRate(() -> DatabaseFactory.INSTANCE.createBackUp(), 1, 1, TimeUnit.HOURS);
   }

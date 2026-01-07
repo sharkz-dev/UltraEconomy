@@ -7,12 +7,13 @@ import com.kingpixel.ultraeconomy.UltraEconomy;
 import com.kingpixel.ultraeconomy.models.Account;
 import com.kingpixel.ultraeconomy.models.Currency;
 import com.kingpixel.ultraeconomy.models.Transaction;
+import com.mojang.authlib.GameProfile;
+import net.minecraft.util.UserCache;
 
 import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -28,13 +29,13 @@ public class JSONClient extends DatabaseClient {
 
   @Override
   public void disconnect() {
-    DatabaseFactory.CACHE_ACCOUNTS.invalidateAll();
+    DatabaseFactory.ACCOUNTS.invalidateAll();
     CobbleUtils.LOGGER.info("JSON database does not require disconnection.");
   }
 
   @Override
   public void invalidate(UUID playerUUID) {
-    DatabaseFactory.CACHE_ACCOUNTS.invalidate(playerUUID);
+    DatabaseFactory.ACCOUNTS.invalidate(playerUUID);
   }
 
   @Override
@@ -44,7 +45,8 @@ public class JSONClient extends DatabaseClient {
 
   @Override
   public Account getAccount(UUID uuid) {
-    Account account = DatabaseFactory.CACHE_ACCOUNTS.getIfPresent(uuid);
+    if (uuid == null) return null;
+    Account account = DatabaseFactory.ACCOUNTS.getIfPresent(uuid);
     if (account != null) return account;
     File accountFile = Utils.getAbsolutePath(PATH + uuid.toString() + FILE_SUFFIX);
     if (accountFile.exists()) {
@@ -69,6 +71,7 @@ public class JSONClient extends DatabaseClient {
       CobbleUtils.LOGGER.warn("Could not load or create account for player with UUID " + uuid);
       return null;
     }
+    DatabaseFactory.ACCOUNTS.put(uuid, account);
     return account;
   }
 
@@ -116,7 +119,10 @@ public class JSONClient extends DatabaseClient {
   }
 
   @Override public Account getAccountByName(String name) {
-    return getAccount(Objects.requireNonNull(CobbleUtils.server.getUserCache().findByName(name).orElse(null)).getId());
+    UserCache userCache = CobbleUtils.server.getUserCache();
+    if (userCache == null) return null;
+    GameProfile gameProfile = userCache.findByName(name).orElse(null);
+    return getAccount(gameProfile != null ? gameProfile.getId() : null);
   }
 
   private void saveAccount(Account account) {
