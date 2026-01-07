@@ -92,6 +92,7 @@ public class PlaceHolders {
         if (!(entity instanceof ServerPlayerEntity player)) return PlaceholderResult.invalid();
         if (arg == null || arg.isEmpty()) return PlaceholderResult.invalid();
         Currency currency = Currencies.getCurrency(arg);
+        if (UltraEconomyApi.getAccount(player.getUuid()) == null) return PlaceholderResult.invalid();
         return PlaceholderResult.value(
           currency.formatAmountText(
             UltraEconomyApi.getBalance(player.getUuid(), currency.getId()),
