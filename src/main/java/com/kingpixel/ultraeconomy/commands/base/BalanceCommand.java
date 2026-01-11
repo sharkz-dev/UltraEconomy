@@ -1,6 +1,7 @@
 package com.kingpixel.ultraeconomy.commands.base;
 
 import com.kingpixel.cobbleutils.command.suggests.CobbleUtilsSuggests;
+import com.kingpixel.cobbleutils.util.PlayerUtils;
 import com.kingpixel.ultraeconomy.UltraEconomy;
 import com.kingpixel.ultraeconomy.api.UltraEconomyApi;
 import com.kingpixel.ultraeconomy.config.Currencies;
@@ -45,6 +46,8 @@ public class BalanceCommand {
           })
           .executes(context -> {
             ServerPlayerEntity player = context.getSource().getPlayer();
+            if (PlayerUtils.hasCooldownCommand(player, "ultraeconomy.balance", UltraEconomy.config.getCommandCooldown()))
+              return 0;
             run(player == null ? null : player.getUuid(), context, StringArgumentType.getString(context,
               KEY_CURRENCY));
             return 1;
