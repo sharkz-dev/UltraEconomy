@@ -165,11 +165,7 @@ public class MongoDBClient extends DatabaseClient {
 
   @Override
   public void saveOrUpdateAccount(Account account) {
-    CompletableFuture.runAsync(() -> saveAccount(account), UltraEconomy.ULTRA_ECONOMY_EXECUTOR)
-      .exceptionally(e -> {
-        e.printStackTrace();
-        return null;
-      });
+    UltraEconomy.runAsync(() -> saveAccount(account));
   }
 
   @Override
@@ -188,19 +184,15 @@ public class MongoDBClient extends DatabaseClient {
   }
 
   public void addTransaction(UUID uuid, Currency currency, BigDecimal amount, TransactionType type, boolean processed) {
-    CompletableFuture.runAsync(() -> {
-        Transaction transaction = new Transaction(uuid, currency.getId(), amount, type, processed, Instant.now());
-        transactionsCollection.insertOne(transaction.toDocument());
-      }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR)
-      .exceptionally(e -> {
-        e.printStackTrace();
-        return null;
-      });
+    UltraEconomy.runAsync(() -> {
+      Transaction transaction = new Transaction(uuid, currency.getId(), amount, type, processed, Instant.now());
+      transactionsCollection.insertOne(transaction.toDocument());
+    });
   }
 
   @Override
   public CompletableFuture<?> createBackUp() {
-    return CompletableFuture.runAsync(() -> {
+    return UltraEconomy.runAsync(() -> {
       try {
         List<Document> accounts = new ArrayList<>();
         for (Document doc : accountsCollection.find()) {
@@ -228,7 +220,7 @@ public class MongoDBClient extends DatabaseClient {
         e.printStackTrace();
       }
       cleanOldBackUps();
-    }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR);
+    });
   }
 
   protected void cleanOldBackUps() {
@@ -278,7 +270,7 @@ public class MongoDBClient extends DatabaseClient {
 
   @Override
   public void loadBackUp(UUID backupUUID) {
-    CompletableFuture.runAsync(() -> {
+    UltraEconomy.runAsync(() -> {
       try {
         Document backup = backupsCollection.find(
           Filters.eq(FIELD_BACKUP_UUID, backupUUID.toString())
@@ -327,7 +319,7 @@ public class MongoDBClient extends DatabaseClient {
         CobbleUtils.LOGGER.error("❌ Error restoring backup: " + backupUUID);
         e.printStackTrace();
       }
-    }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR);
+    });
   }
 
 

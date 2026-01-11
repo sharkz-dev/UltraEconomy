@@ -14,7 +14,6 @@ import net.minecraft.text.Text;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * @author Carlos Varas Alonso - 23/09/2025 22:01
@@ -38,24 +37,23 @@ public class SetCommand {
                   CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.suggestPlayerName("player", List.of(
                       "ultraeconomy.admin.set"), 2)
                     .executes(context -> {
-                      CompletableFuture.runAsync(() -> {
-                          var target = StringArgumentType.getString(context, "player");
-                          var currency = Currencies.getCurrency(StringArgumentType.getString(context, "currency"));
-                          var amountStr = StringArgumentType.getString(context, "amount");
-                          if (!UltraEconomyApi.existsPlayerWithName(target)) {
-                            context.getSource().sendMessage(Text.literal("§cPlayer not found"));
-                            return;
-                          }
-                          var playerUUID = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerUUIDWithName(target);
-                          if (playerUUID != null) {
-                            BigDecimal value = BigDecimal.valueOf(Double.parseDouble(amountStr));
-                            UltraEconomyApi.setBalance(playerUUID, currency.getId(), value);
-                            Register.sendMessage(currency, value, playerUUID, UltraEconomy.lang.getMessageSetBalance());
-                          } else {
-                            context.getSource().sendError(Text.literal("§cPlayer not found"));
-                          }
-                        }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR)
-                        .exceptionally(e -> Register.sendFeedBack(e, context));
+                      UltraEconomy.runAsync(() -> {
+                        var target = StringArgumentType.getString(context, "player");
+                        var currency = Currencies.getCurrency(StringArgumentType.getString(context, "currency"));
+                        var amountStr = StringArgumentType.getString(context, "amount");
+                        if (!UltraEconomyApi.existsPlayerWithName(target)) {
+                          context.getSource().sendMessage(Text.literal("§cPlayer not found"));
+                          return;
+                        }
+                        var playerUUID = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerUUIDWithName(target);
+                        if (playerUUID != null) {
+                          BigDecimal value = BigDecimal.valueOf(Double.parseDouble(amountStr));
+                          UltraEconomyApi.setBalance(playerUUID, currency.getId(), value);
+                          Register.sendMessage(currency, value, playerUUID, UltraEconomy.lang.getMessageSetBalance());
+                        } else {
+                          context.getSource().sendError(Text.literal("§cPlayer not found"));
+                        }
+                      });
                       return 1;
                     })
                 )

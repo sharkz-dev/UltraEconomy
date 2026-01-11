@@ -77,11 +77,7 @@ public class JSONClient extends DatabaseClient {
 
   @Override
   public void saveOrUpdateAccount(Account account) {
-    CompletableFuture.runAsync(() -> saveAccount(account), UltraEconomy.ULTRA_ECONOMY_EXECUTOR)
-      .exceptionally(e -> {
-        e.printStackTrace();
-        return null;
-      });
+    UltraEconomy.runAsync(() -> saveAccount(account));
   }
 
   @Override

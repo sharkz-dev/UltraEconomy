@@ -3,7 +3,6 @@ package com.kingpixel.ultraeconomy.commands.admin;
 import com.kingpixel.cobbleutils.util.AdventureTranslator;
 import com.kingpixel.cobbleutils.util.PlayerUtils;
 import com.kingpixel.ultraeconomy.UltraEconomy;
-import com.kingpixel.ultraeconomy.commands.Register;
 import com.kingpixel.ultraeconomy.config.Currencies;
 import com.kingpixel.ultraeconomy.database.DatabaseFactory;
 import com.kingpixel.ultraeconomy.models.Account;
@@ -19,7 +18,6 @@ import net.minecraft.text.Text;
 
 import java.util.List;
 import java.util.StringJoiner;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * @author Carlos Varas Alonso - 23/09/2025 22:01
@@ -88,50 +86,49 @@ public class BaltopCommand {
     var source = context.getSource();
     if (PlayerUtils.hasCooldownCommand(source.getPlayer(), "ultraeconomy.baltop", UltraEconomy.config.getBalTopCooldown()))
       return;
-    CompletableFuture.runAsync(() -> {
-        Currency currency = Currencies.getCurrency(currencyId);
-        if (currency == null) {
-          source.sendMessage(Text.literal("§c Currency not found: " + currencyId));
-          return;
+    UltraEconomy.runAsync(() -> {
+      Currency currency = Currencies.getCurrency(currencyId);
+      if (currency == null) {
+        source.sendMessage(Text.literal("§c Currency not found: " + currencyId));
+        return;
+      }
+      List<Account> topAccounts = DatabaseFactory.INSTANCE.getTopBalances(currency, page,
+        UltraEconomy.config.getLimitTopPlayers());
+
+      StringJoiner joiner = new StringJoiner("\n");
+      joiner.add(UltraEconomy.lang.getMessageBalTopHeader()
+        .replace("%number%", String.valueOf(page == 0 ? 1 : page * UltraEconomy.config.getLimitTopPlayers())));
+
+      if (topAccounts.isEmpty()) {
+        joiner.add(UltraEconomy.lang.getMessageBalTopEmpty());
+      } else {
+        int limit = UltraEconomy.config.getLimitTopPlayers();
+        int rank = (page - 1) * limit + 1;
+        int size = topAccounts.size();
+        if (size > limit) size = limit;
+        for (int i = 0; i < size; i++) {
+          Account account = topAccounts.get(i);
+          String line = UltraEconomy.lang.getMessageBalTopLine()
+            .replace("%rank%", Integer.toString(rank))
+            .replace("%player%", account.getPlayerName())
+            .replace("%balance%", currency.format(account.getBalance(currency)));
+          joiner.add(line);
+          rank++;
         }
-        List<Account> topAccounts = DatabaseFactory.INSTANCE.getTopBalances(currency, page,
-          UltraEconomy.config.getLimitTopPlayers());
+      }
 
-        StringJoiner joiner = new StringJoiner("\n");
-        joiner.add(UltraEconomy.lang.getMessageBalTopHeader()
-          .replace("%number%", String.valueOf(page == 0 ? 1 : page * UltraEconomy.config.getLimitTopPlayers())));
+      int previousPage = Math.min(1, page - 1);
+      int nextPage = page + 1;
 
-        if (topAccounts.isEmpty()) {
-          joiner.add(UltraEconomy.lang.getMessageBalTopEmpty());
-        } else {
-          int limit = UltraEconomy.config.getLimitTopPlayers();
-          int rank = (page - 1) * limit + 1;
-          int size = topAccounts.size();
-          if (size > limit) size = limit;
-          for (int i = 0; i < size; i++) {
-            Account account = topAccounts.get(i);
-            String line = UltraEconomy.lang.getMessageBalTopLine()
-              .replace("%rank%", Integer.toString(rank))
-              .replace("%player%", account.getPlayerName())
-              .replace("%balance%", currency.format(account.getBalance(currency)));
-            joiner.add(line);
-            rank++;
-          }
-        }
+      joiner.add(UltraEconomy.lang.getMessageBalTopFooter()
+        .replace("%page%", Integer.toString(page))
+        .replace("%currency%", currency.getId())
+        .replace("%previous_page%", Integer.toString(previousPage))
+        .replace("%next_page%", Integer.toString(nextPage)));
+      String output = joiner.toString();
 
-        int previousPage = Math.min(1, page - 1);
-        int nextPage = page + 1;
-
-        joiner.add(UltraEconomy.lang.getMessageBalTopFooter()
-          .replace("%page%", Integer.toString(page))
-          .replace("%currency%", currency.getId())
-          .replace("%previous_page%", Integer.toString(previousPage))
-          .replace("%next_page%", Integer.toString(nextPage)));
-        String output = joiner.toString();
-
-        source.sendFeedback(() -> AdventureTranslator.toNative(output), false);
-      }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR)
-      .exceptionally(e -> Register.sendFeedBack(e, context));
+      source.sendFeedback(() -> AdventureTranslator.toNative(output), false);
+    });
   }
 
 }

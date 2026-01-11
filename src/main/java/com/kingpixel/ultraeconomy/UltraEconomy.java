@@ -28,7 +28,7 @@ public class UltraEconomy implements ModInitializer {
   private static final WebModule webModule = new WebModule();
   public static Config config = new Config();
   public static Lang lang = new Lang();
-  public static final ExecutorService ULTRA_ECONOMY_EXECUTOR = Executors.newFixedThreadPool(2, new ThreadFactoryBuilder()
+  private static final ExecutorService ULTRA_ECONOMY_EXECUTOR = Executors.newFixedThreadPool(1, new ThreadFactoryBuilder()
     .setNameFormat("ultra economy-executor-%d")
     .setDaemon(true)
     .build()
@@ -103,5 +103,9 @@ public class UltraEconomy implements ModInitializer {
     ULTRA_ECONOMY_SCHEDULER.scheduleAtFixedRate(() -> DatabaseFactory.ACCOUNTS.asMap().values().forEach(account -> DatabaseFactory.INSTANCE.saveOrUpdateAccount(account)), 60, 30, TimeUnit.SECONDS);
 
     ULTRA_ECONOMY_SCHEDULER.scheduleAtFixedRate(() -> DatabaseFactory.INSTANCE.createBackUp(), 1, 1, TimeUnit.HOURS);
+  }
+
+  public static CompletableFuture<?> runAsync(Runnable task) {
+    return CobbleUtils.runAsync(task, ULTRA_ECONOMY_EXECUTOR);
   }
 }

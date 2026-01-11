@@ -5,7 +5,6 @@ import com.kingpixel.cobbleutils.command.suggests.CobbleUtilsSuggests;
 import com.kingpixel.cobbleutils.util.PlayerUtils;
 import com.kingpixel.ultraeconomy.UltraEconomy;
 import com.kingpixel.ultraeconomy.api.UltraEconomyApi;
-import com.kingpixel.ultraeconomy.commands.Register;
 import com.kingpixel.ultraeconomy.config.Currencies;
 import com.kingpixel.ultraeconomy.database.DatabaseFactory;
 import com.kingpixel.ultraeconomy.models.Currency;
@@ -22,7 +21,6 @@ import net.minecraft.text.Text;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * @author Carlos Varas Alonso - 23/09/2025 22:01
@@ -76,23 +74,22 @@ public class PayCommand {
   private static void run(ServerPlayerEntity executor, String target, String currencyId, BigDecimal amount, CommandContext<ServerCommandSource> context) {
     if (PlayerUtils.hasCooldownCommand(executor, "ultraeconomy.command.pay",
       UltraEconomy.config.getCommandCooldown())) return;
-    CompletableFuture.runAsync(() -> {
-        Currency currency = Currencies.getCurrency(currencyId);
+    UltraEconomy.runAsync(() -> {
+      Currency currency = Currencies.getCurrency(currencyId);
 
-        if (!DatabaseFactory.INSTANCE.hasEnoughBalance(executor.getUuid(), currency, amount)) return;
+      if (!DatabaseFactory.INSTANCE.hasEnoughBalance(executor.getUuid(), currency, amount)) return;
 
-        UUID targetUUID = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerUUIDWithName(target);
-        if (executor.getUuid().equals(targetUUID)) {
-          UltraEconomy.lang.getMessagePayYourself().sendMessage(
-            executor,
-            UltraEconomy.lang.getPrefix(),
-            false
-          );
-          return;
-        }
-        UltraEconomyApi.transfer(executor.getUuid(), targetUUID, currency.getId(), amount);
-      }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR)
-      .exceptionally(e -> Register.sendFeedBack(e, context));
+      UUID targetUUID = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerUUIDWithName(target);
+      if (executor.getUuid().equals(targetUUID)) {
+        UltraEconomy.lang.getMessagePayYourself().sendMessage(
+          executor,
+          UltraEconomy.lang.getPrefix(),
+          false
+        );
+        return;
+      }
+      UltraEconomyApi.transfer(executor.getUuid(), targetUUID, currency.getId(), amount);
+    });
   }
 
 }

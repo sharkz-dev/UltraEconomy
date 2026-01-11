@@ -4,6 +4,7 @@ import ca.landonjw.gooeylibs2.api.UIManager;
 import ca.landonjw.gooeylibs2.api.button.GooeyButton;
 import ca.landonjw.gooeylibs2.api.page.GooeyPage;
 import ca.landonjw.gooeylibs2.api.template.types.ChestTemplate;
+import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.Model.ItemModel;
 import com.kingpixel.cobbleutils.Model.Rectangle;
 import com.kingpixel.cobbleutils.util.AdventureTranslator;
@@ -16,7 +17,6 @@ import net.minecraft.server.network.ServerPlayerEntity;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * @author Carlos Varas Alonso - 27/09/2025 17:06
@@ -42,49 +42,45 @@ public class BalTopMenu {
   }
 
   public void open(ServerPlayerEntity player, int page, Currency currency) {
-    CompletableFuture.runAsync(() -> {
-        ChestTemplate template = ChestTemplate.builder(rows).build();
+    UltraEconomy.runAsync(() -> {
+      ChestTemplate template = ChestTemplate.builder(rows).build();
 
-        // Obtenemos la lista directamente, ya viene con +1 internamente
-        List<Account> accounts = DatabaseFactory.INSTANCE.getTopBalances(currency, page, playersPerPage);
+      // Obtenemos la lista directamente, ya viene con +1 internamente
+      List<Account> accounts = DatabaseFactory.INSTANCE.getTopBalances(currency, page, playersPerPage);
 
-        // Si la lista es mayor que playersPerPage, hay siguiente página
-        boolean hasNextPage = accounts.size() > playersPerPage;
+      // Si la lista es mayor que playersPerPage, hay siguiente página
+      boolean hasNextPage = accounts.size() > playersPerPage;
 
-        // Mostramos solo hasta playersPerPage
-        List<Account> accountsPage = accounts.subList(0, Math.min(playersPerPage, accounts.size()));
+      // Mostramos solo hasta playersPerPage
+      List<Account> accountsPage = accounts.subList(0, Math.min(playersPerPage, accounts.size()));
 
-        List<GooeyButton> buttons = new ArrayList<>();
-        for (Account account : accountsPage) {
-          buttons.add(account.getButton(currency));
-        }
-        rectangle.apply(template, buttons);
+      List<GooeyButton> buttons = new ArrayList<>();
+      for (Account account : accountsPage) {
+        buttons.add(account.getButton(currency));
+      }
+      rectangle.apply(template, buttons);
 
-        // Botón de página anterior
-        if (page > 1) {
-          prevPageItem.applyTemplate(template, prevPageItem.getButton(action -> open(player, page - 1, currency)));
-        }
+      // Botón de página anterior
+      if (page > 1) {
+        prevPageItem.applyTemplate(template, prevPageItem.getButton(action -> open(player, page - 1, currency)));
+      }
 
-        // Botón de cerrar
-        closeItem.applyTemplate(template, closeItem.getButton(action -> UIManager.closeUI(player)));
+      // Botón de cerrar
+      closeItem.applyTemplate(template, closeItem.getButton(action -> UIManager.closeUI(player)));
 
-        // Botón de siguiente página si hay más
-        if (hasNextPage) {
-          nextPageItem.applyTemplate(template, nextPageItem.getButton(action -> open(player, page + 1, currency)));
-        }
+      // Botón de siguiente página si hay más
+      if (hasNextPage) {
+        nextPageItem.applyTemplate(template, nextPageItem.getButton(action -> open(player, page + 1, currency)));
+      }
 
-        GooeyPage pageMenu = GooeyPage.builder()
-          .template(template)
-          .title(AdventureTranslator.toNative(title))
-          .build();
+      GooeyPage pageMenu = GooeyPage.builder()
+        .template(template)
+        .title(AdventureTranslator.toNative(title))
+        .build();
 
-        UIManager.openUIForcefully(player, pageMenu);
 
-      }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR)
-      .exceptionally(e -> {
-        e.printStackTrace();
-        return null;
-      });
+      CobbleUtils.server.execute(() -> UIManager.openUIForcefully(player, pageMenu));
+    });
   }
 
 }

@@ -3,9 +3,7 @@ package com.kingpixel.ultraeconomy.commands.admin;
 import com.kingpixel.cobbleutils.command.suggests.CobbleUtilsSuggests;
 import com.kingpixel.ultraeconomy.UltraEconomy;
 import com.kingpixel.ultraeconomy.api.UltraEconomyApi;
-import com.kingpixel.ultraeconomy.commands.Register;
 import com.kingpixel.ultraeconomy.config.Currencies;
-import com.kingpixel.ultraeconomy.exceptions.UnknownCurrencyException;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -17,7 +15,6 @@ import net.minecraft.text.Text;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * @author Carlos Varas Alonso - 23/09/2025 22:01
@@ -56,21 +53,16 @@ public class BalanceCommand {
                 "ultraeconomy.admin.balance"
               ), 0)
               .executes(context -> {
-                CompletableFuture.runAsync(() -> {
-                    var target = StringArgumentType.getString(context, KEY_PLAYER);
-                    if (!UltraEconomyApi.existsPlayerWithName(target)) {
-                      context.getSource().sendMessage(Text.literal("§cPlayer not found"));
-                      return;
-                    }
-                    var currencyId = StringArgumentType.getString(context, KEY_CURRENCY);
-                    var targetUUID = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerUUIDWithName(target);
-                    run(targetUUID, context, currencyId);
-                  }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR)
-                  .exceptionally(e -> {
-                    if (e instanceof UnknownCurrencyException) return null;
-                    e.printStackTrace();
-                    return null;
-                  });
+                UltraEconomy.runAsync(() -> {
+                  var target = StringArgumentType.getString(context, KEY_PLAYER);
+                  if (!UltraEconomyApi.existsPlayerWithName(target)) {
+                    context.getSource().sendMessage(Text.literal("§cPlayer not found"));
+                    return;
+                  }
+                  var currencyId = StringArgumentType.getString(context, KEY_CURRENCY);
+                  var targetUUID = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerUUIDWithName(target);
+                  run(targetUUID, context, currencyId);
+                });
                 return 1;
               })
           )
@@ -78,31 +70,30 @@ public class BalanceCommand {
   }
 
   public static void run(UUID targetUUID, CommandContext<ServerCommandSource> context, String currencyId) {
-    CompletableFuture.runAsync(() -> {
-        var source = context.getSource();
-        if (targetUUID == null) {
-          source.sendError(Text.literal("§cYou must be a player to use this command"));
-          return;
-        }
+    UltraEconomy.runAsync(() -> {
+      var source = context.getSource();
+      if (targetUUID == null) {
+        source.sendError(Text.literal("§cYou must be a player to use this command"));
+        return;
+      }
 
-        var currency = Currencies.getCurrency(currencyId);
-        var balance = UltraEconomyApi.getBalance(targetUUID, currencyId);
-        if (balance == null) {
-          source.sendError(Text.literal("§cBalance not found"));
-          return;
-        }
-        ServerPlayerEntity player = source.getPlayer();
+      var currency = Currencies.getCurrency(currencyId);
+      var balance = UltraEconomyApi.getBalance(targetUUID, currencyId);
+      if (balance == null) {
+        source.sendError(Text.literal("§cBalance not found"));
+        return;
+      }
+      ServerPlayerEntity player = source.getPlayer();
 
-        var lang = UltraEconomy.lang;
-        String modifiedContent = lang.getMessageBalance().getRawMessage().replace("%balance%", currency.format(balance, UltraEconomyApi.getLocale(player)));
-        var message = lang.getMessageBalance();
-        message.sendMessage(
-          player,
-          modifiedContent,
-          UltraEconomy.lang.getPrefix(),
-          false
-        );
-      }, UltraEconomy.ULTRA_ECONOMY_EXECUTOR)
-      .exceptionally(e -> Register.sendFeedBack(e, context));
+      var lang = UltraEconomy.lang;
+      String modifiedContent = lang.getMessageBalance().getRawMessage().replace("%balance%", currency.format(balance, UltraEconomyApi.getLocale(player)));
+      var message = lang.getMessageBalance();
+      message.sendMessage(
+        player,
+        modifiedContent,
+        UltraEconomy.lang.getPrefix(),
+        false
+      );
+    });
   }
 }
