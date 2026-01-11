@@ -14,6 +14,7 @@ import com.mongodb.MongoNamespace;
 import com.mongodb.client.*;
 import com.mongodb.client.model.*;
 import net.minecraft.entity.Entity;
+import net.minecraft.server.network.ServerPlayerEntity;
 import org.bson.Document;
 import org.bson.UuidRepresentation;
 import org.bson.types.Decimal128;
@@ -506,6 +507,7 @@ public class MongoDBClient extends DatabaseClient {
 
 
   public Account getCachedAccount(UUID uuid) {
-    return DatabaseFactory.ACCOUNTS.getIfPresent(uuid);
+    ServerPlayerEntity player = CobbleUtils.server.getPlayerManager().getPlayer(uuid);
+    return player == null ? null : getAccount(uuid);
   }
 }

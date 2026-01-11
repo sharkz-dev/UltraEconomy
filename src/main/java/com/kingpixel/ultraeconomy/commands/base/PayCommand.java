@@ -78,7 +78,6 @@ public class PayCommand {
   }
 
   private static void run(ServerPlayerEntity executor, String target, String currencyId, BigDecimal amount, CommandContext<ServerCommandSource> context) {
-
     UltraEconomy.runAsync(() -> {
       Currency currency = Currencies.getCurrency(currencyId);
 

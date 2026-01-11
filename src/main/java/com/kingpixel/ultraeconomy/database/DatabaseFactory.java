@@ -14,7 +14,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 public class DatabaseFactory {
   /**
@@ -25,7 +24,6 @@ public class DatabaseFactory {
    */
   public static final Cache<@NotNull UUID, Account> ACCOUNTS = Caffeine
     .newBuilder()
-    .expireAfterAccess(5, TimeUnit.SECONDS)
     .removalListener((key, value, cause) -> {
       if (cause.equals(RemovalCause.REPLACED) || UltraEconomy.server.isStopping() || UltraEconomy.server.isStopped())
         return;
