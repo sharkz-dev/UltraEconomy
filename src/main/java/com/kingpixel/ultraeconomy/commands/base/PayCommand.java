@@ -1,4 +1,4 @@
-package com.kingpixel.ultraeconomy.commands.admin;
+package com.kingpixel.ultraeconomy.commands.base;
 
 import com.kingpixel.cobbleutils.api.PermissionApi;
 import com.kingpixel.cobbleutils.command.suggests.CobbleUtilsSuggests;
@@ -72,8 +72,8 @@ public class PayCommand {
   }
 
   private static void run(ServerPlayerEntity executor, String target, String currencyId, BigDecimal amount, CommandContext<ServerCommandSource> context) {
-    if (PlayerUtils.hasCooldownCommand(executor, "ultraeconomy.command.pay",
-      UltraEconomy.config.getCommandCooldown())) return;
+    if (PlayerUtils.hasCooldownCommand(executor, "ultraeconomy.command.pay", UltraEconomy.config.getCommandCooldown()))
+      return;
     UltraEconomy.runAsync(() -> {
       Currency currency = Currencies.getCurrency(currencyId);
 

@@ -1,4 +1,4 @@
-package com.kingpixel.ultraeconomy.commands.admin;
+package com.kingpixel.ultraeconomy.commands.base;
 
 import com.kingpixel.cobbleutils.util.AdventureTranslator;
 import com.kingpixel.cobbleutils.util.PlayerUtils;

@@ -1,4 +1,4 @@
-package com.kingpixel.ultraeconomy.commands.admin;
+package com.kingpixel.ultraeconomy.commands.base;
 
 import com.kingpixel.cobbleutils.command.suggests.CobbleUtilsSuggests;
 import com.kingpixel.ultraeconomy.UltraEconomy;
@@ -53,16 +53,14 @@ public class BalanceCommand {
                 "ultraeconomy.admin.balance"
               ), 0)
               .executes(context -> {
-                UltraEconomy.runAsync(() -> {
-                  var target = StringArgumentType.getString(context, KEY_PLAYER);
-                  if (!UltraEconomyApi.existsPlayerWithName(target)) {
-                    context.getSource().sendMessage(Text.literal("§cPlayer not found"));
-                    return;
-                  }
-                  var currencyId = StringArgumentType.getString(context, KEY_CURRENCY);
-                  var targetUUID = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerUUIDWithName(target);
-                  run(targetUUID, context, currencyId);
-                });
+                var target = StringArgumentType.getString(context, KEY_PLAYER);
+                if (!UltraEconomyApi.existsPlayerWithName(target)) {
+                  context.getSource().sendMessage(Text.literal("§cPlayer not found"));
+                  return 0;
+                }
+                var currencyId = StringArgumentType.getString(context, KEY_CURRENCY);
+                var targetUUID = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerUUIDWithName(target);
+                run(targetUUID, context, currencyId);
                 return 1;
               })
           )
