@@ -7,6 +7,7 @@ import com.kingpixel.ultraeconomy.UltraEconomy;
 import com.kingpixel.ultraeconomy.api.UltraEconomyApi;
 import com.kingpixel.ultraeconomy.commands.Register;
 import com.kingpixel.ultraeconomy.config.Currencies;
+import com.kingpixel.ultraeconomy.database.DatabaseFactory;
 import com.kingpixel.ultraeconomy.models.Currency;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.FloatArgumentType;
@@ -73,9 +74,12 @@ public class PayCommand {
   }
 
   private static void run(ServerPlayerEntity executor, String target, String currencyId, BigDecimal amount, CommandContext<ServerCommandSource> context) {
-    PlayerUtils.hasCooldownCommand(executor, "ultraeconomy.command.pay", UltraEconomy.config.getCommandCooldown());
+    if (PlayerUtils.hasCooldownCommand(executor, "ultraeconomy.command.pay",
+      UltraEconomy.config.getCommandCooldown())) return;
     CompletableFuture.runAsync(() -> {
         Currency currency = Currencies.getCurrency(currencyId);
+
+        if (!DatabaseFactory.INSTANCE.hasEnoughBalance(executor.getUuid(), currency, amount)) return;
 
         UUID targetUUID = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerUUIDWithName(target);
         if (executor.getUuid().equals(targetUUID)) {
