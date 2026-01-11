@@ -56,13 +56,19 @@ public class PayCommand {
                   )
                   .executes(context -> {
                     var executor = context.getSource().getPlayer();
+                    if (executor == null) {
+                      context.getSource().sendError(Text.literal("§cOnly players can execute this command"));
+                      return 0;
+                    }
                     var target = StringArgumentType.getString(context, "player");
                     if (!UltraEconomyApi.existsPlayerWithName(target)) {
                       context.getSource().sendMessage(Text.literal("§cPlayer not found"));
                       return 0;
                     }
+
                     var currencyId = StringArgumentType.getString(context, "currency");
                     var amount = BigDecimal.valueOf(FloatArgumentType.getFloat(context, "amount"));
+                    if (!target.equalsIgnoreCase(executor.getGameProfile().getName())) return 0;
                     run(executor, target, currencyId, amount, context);
                     return 1;
                   })
