@@ -73,8 +73,7 @@ public class UltraEconomy implements ModInitializer {
     }));
 
     PlayerEvent.PLAYER_QUIT.register((player) -> runAsync(() -> {
-      if (server.isStopped() || server.isStopping()) return;
-      DatabaseFactory.INSTANCE.saveOrUpdateAccount(DatabaseFactory.INSTANCE.getAccount(player.getUuid()));
+      DatabaseFactory.INSTANCE.saveOrUpdateAccount(DatabaseFactory.INSTANCE.getCachedAccount(player.getUuid()));
       DatabaseFactory.ACCOUNTS.invalidate(player.getUuid());
     }));
 
