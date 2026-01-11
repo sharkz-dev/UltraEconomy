@@ -33,11 +33,10 @@ public class UltraEconomy implements ModInitializer {
     .setDaemon(true)
     .build()
   );
-  public static final ScheduledExecutorService ULTRA_ECONOMY_SCHEDULER = Executors.newScheduledThreadPool(1,
-    new ThreadFactoryBuilder()
-      .setNameFormat("ultra economy-scheduler-%d")
-      .setDaemon(true)
-      .build()
+  public static final ScheduledExecutorService ULTRA_ECONOMY_SCHEDULER = Executors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
+    .setNameFormat("ultra economy-scheduler-%d")
+    .setDaemon(true)
+    .build()
   );
   public static boolean migrationDone;
 
