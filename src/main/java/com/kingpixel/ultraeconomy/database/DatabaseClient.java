@@ -50,6 +50,17 @@ public abstract class DatabaseClient {
   public abstract Account getAccount(UUID uuid);
 
   /**
+   * Get a cached account by UUID
+   *
+   * @param uuid The UUID of the account
+   *
+   * @return The account, or null if not found
+   */
+  public Account getCachedAccount(UUID uuid) {
+    return DatabaseFactory.ACCOUNTS.getIfPresent(uuid);
+  }
+
+  /**
    * Save or update an account
    *
    * @param account The account to save or update

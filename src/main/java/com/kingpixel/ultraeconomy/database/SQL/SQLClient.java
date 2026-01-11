@@ -544,10 +544,6 @@ public class SQLClient extends DatabaseClient {
     }
   }
 
-  public Account getCachedAccount(UUID uuid) {
-    return DatabaseFactory.ACCOUNTS.getIfPresent(uuid);
-  }
-
   @Override
   public boolean isConnected() {
     try (Connection conn = dataSource.getConnection()) {

@@ -64,22 +64,19 @@ public class UltraEconomy implements ModInitializer {
   }
 
   public void events() {
-    PlayerEvent.PLAYER_JOIN.register((player) -> CompletableFuture.runAsync(() -> {
-        Account account = DatabaseFactory.INSTANCE.getAccount(player.getUuid());
-        account.setPlayerName(player.getGameProfile().getName());
-        DatabaseFactory.ACCOUNTS.put(player.getUuid(), account);
-        account.fix();
-        DatabaseFactory.INSTANCE.saveOrUpdateAccount(account);
-      }, ULTRA_ECONOMY_EXECUTOR)
-      .exceptionally(e -> {
-        e.printStackTrace();
-        return null;
-      }));
+    PlayerEvent.PLAYER_JOIN.register((player) -> runAsync(() -> {
+      Account account = DatabaseFactory.INSTANCE.getAccount(player.getUuid());
+      account.setPlayerName(player.getGameProfile().getName());
+      DatabaseFactory.ACCOUNTS.put(player.getUuid(), account);
+      account.fix();
+      DatabaseFactory.INSTANCE.saveOrUpdateAccount(account);
+    }));
 
-    PlayerEvent.PLAYER_QUIT.register((player) -> {
+    PlayerEvent.PLAYER_QUIT.register((player) -> runAsync(() -> {
       if (server.isStopped() || server.isStopping()) return;
+      DatabaseFactory.INSTANCE.saveOrUpdateAccount(DatabaseFactory.INSTANCE.getAccount(player.getUuid()));
       DatabaseFactory.ACCOUNTS.invalidate(player.getUuid());
-    });
+    }));
 
     ServerLifecycleEvents.SERVER_STARTED.register((server) -> {
       UltraEconomy.server = server;

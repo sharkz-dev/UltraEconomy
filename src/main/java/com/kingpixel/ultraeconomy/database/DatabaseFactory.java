@@ -2,11 +2,8 @@ package com.kingpixel.ultraeconomy.database;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.RemovalCause;
-import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.Model.DataBaseConfig;
 import com.kingpixel.cobbleutils.Model.DataBaseType;
-import com.kingpixel.ultraeconomy.UltraEconomy;
 import com.kingpixel.ultraeconomy.database.SQL.SQLClient;
 import com.kingpixel.ultraeconomy.exceptions.DatabaseConnectionException;
 import com.kingpixel.ultraeconomy.models.Account;
@@ -24,17 +21,6 @@ public class DatabaseFactory {
    */
   public static final Cache<@NotNull UUID, Account> ACCOUNTS = Caffeine
     .newBuilder()
-    .removalListener((key, value, cause) -> {
-      if (cause.equals(RemovalCause.REPLACED) || UltraEconomy.server.isStopping() || UltraEconomy.server.isStopped())
-        return;
-      if (value != null) {
-        Account account = (Account) value;
-        CobbleUtils.LOGGER.info("Saving account " + account.getPlayerUUID() + " to database (cause: " + cause + ")");
-        DatabaseFactory.INSTANCE.saveOrUpdateAccount((Account) value);
-      } else {
-        CobbleUtils.LOGGER.warn("Tried to save null account to database (cause: " + cause + ")");
-      }
-    })
     .build();
 
   public static DatabaseClient INSTANCE;
