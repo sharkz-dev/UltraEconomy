@@ -60,15 +60,15 @@ public class PayCommand {
                       context.getSource().sendError(Text.literal("§cOnly players can execute this command"));
                       return 0;
                     }
+                    if (PlayerUtils.hasCooldownCommand(executor, "ultraeconomy.command.pay", UltraEconomy.config.getCommandCooldown()))
+                      return 0;
                     var target = StringArgumentType.getString(context, "player");
                     if (!UltraEconomyApi.existsPlayerWithName(target)) {
                       context.getSource().sendMessage(Text.literal("§cPlayer not found"));
                       return 0;
                     }
-
                     var currencyId = StringArgumentType.getString(context, "currency");
                     var amount = BigDecimal.valueOf(FloatArgumentType.getFloat(context, "amount"));
-                    if (!target.equalsIgnoreCase(executor.getGameProfile().getName())) return 0;
                     run(executor, target, currencyId, amount, context);
                     return 1;
                   })
@@ -78,8 +78,7 @@ public class PayCommand {
   }
 
   private static void run(ServerPlayerEntity executor, String target, String currencyId, BigDecimal amount, CommandContext<ServerCommandSource> context) {
-    if (PlayerUtils.hasCooldownCommand(executor, "ultraeconomy.command.pay", UltraEconomy.config.getCommandCooldown()))
-      return;
+
     UltraEconomy.runAsync(() -> {
       Currency currency = Currencies.getCurrency(currencyId);
 
