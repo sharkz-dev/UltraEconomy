@@ -10,6 +10,7 @@
 - Added web page. This need activate in the config. (http://yourserver:port).
 - Improved the migration system from previous economy mods.
 - Improvements in web interface for better user experience.
+- Added commands cooldown system.
 
 ### Changed
 - Project structure and dependencies updated.
