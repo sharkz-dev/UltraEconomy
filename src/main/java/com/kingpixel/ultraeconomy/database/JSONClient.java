@@ -29,7 +29,6 @@ public class JSONClient extends DatabaseClient {
 
   @Override
   public void disconnect() {
-    DatabaseFactory.ACCOUNTS.invalidateAll();
     CobbleUtils.LOGGER.info("JSON database does not require disconnection.");
   }
 

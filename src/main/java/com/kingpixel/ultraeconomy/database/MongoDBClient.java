@@ -120,7 +120,6 @@ public class MongoDBClient extends DatabaseClient {
 
   @Override
   public void disconnect() {
-    DatabaseFactory.ACCOUNTS.invalidateAll();
     if (transactionExecutor != null) {
       runningTransactions = false;
       CobbleUtils.shutdownAndAwait(transactionExecutor);
@@ -174,6 +173,10 @@ public class MongoDBClient extends DatabaseClient {
   }
 
   private void saveAccount(Account account) {
+    if (account == null) {
+      CobbleUtils.LOGGER.warn("Tried to save a null account.");
+      return;
+    }
     Document accountDoc = account.toDocument();
 
     accountsCollection.replaceOne(
