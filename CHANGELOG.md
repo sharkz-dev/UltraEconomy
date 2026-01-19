@@ -20,6 +20,7 @@
 - Minor bug fixes in user data saving.
 - Fixed Injection issue in Impactor Mixins.
 - Fixed SQLite logic when player is offline.
+- Fixed issue with transaction history not processing correctly.
 
 ### Feature plans
 - Upcoming backup system.
