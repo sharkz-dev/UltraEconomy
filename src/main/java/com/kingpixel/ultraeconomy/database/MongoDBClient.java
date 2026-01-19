@@ -91,6 +91,7 @@ public class MongoDBClient extends DatabaseClient {
         return t;
       });
 
+      runningTransactions = true;
       connected.set(true);
 
       transactionExecutor.scheduleWithFixedDelay(
@@ -159,7 +160,7 @@ public class MongoDBClient extends DatabaseClient {
   @Override
   public synchronized void disconnect() {
     if (!connected.get()) return;
-
+    runningTransactions = false;
     shuttingDown.set(true);
     connected.set(false);
 
