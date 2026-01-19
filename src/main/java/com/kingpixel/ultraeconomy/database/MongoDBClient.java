@@ -395,7 +395,11 @@ public class MongoDBClient extends DatabaseClient {
       CobbleUtils.LOGGER.info(UltraEconomy.MOD_ID, "Skipping transaction processing, shutting down.");
       return;
     }
-    if (!runningTransactions || UltraEconomy.server == null) {
+    if (!runningTransactions) {
+      CobbleUtils.LOGGER.info(UltraEconomy.MOD_ID, "Skipping transaction processing, not running.");
+      return;
+    }
+    if (UltraEconomy.server == null) {
       CobbleUtils.LOGGER.info(UltraEconomy.MOD_ID, "Skipping transaction processing, server not ready.");
       return;
     }
