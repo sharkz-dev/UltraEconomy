@@ -25,6 +25,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MongoDBClient extends DatabaseClient {
   // Nombres de las colecciones
@@ -42,18 +43,30 @@ public class MongoDBClient extends DatabaseClient {
   private static final String FIELD_PROCESSED = "processed";
   private static final String FIELD_BACKUP_UUID = "uuid";
 
+  private final AtomicBoolean connected = new AtomicBoolean(false);
+  private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
+
   private MongoDatabase database;
   private MongoClient mongoClient;
   private MongoCollection<Document> accountsCollection;
   private MongoCollection<Document> transactionsCollection;
   private MongoCollection<Document> backupsCollection;
 
+  enum State {DISCONNECTED, CONNECTING, CONNECTED, DISCONNECTING}
+
 
   private ScheduledExecutorService transactionExecutor;
   private boolean runningTransactions = false;
 
   @Override
-  public void connect(DataBaseConfig config) {
+  public synchronized void connect(DataBaseConfig config) {
+    if (connected.get()) {
+      CobbleUtils.LOGGER.warn("MongoDB already connected, ignoring connect()");
+      return;
+    }
+
+    shuttingDown.set(false);
+
     try {
       mongoClient = MongoClients.create(
         MongoClientSettings.builder()
@@ -62,29 +75,50 @@ public class MongoDBClient extends DatabaseClient {
           .applicationName("UltraEconomy-MongoDB")
           .build()
       );
+
       database = mongoClient.getDatabase(config.getDatabase());
 
       accountsCollection = database.getCollection(ACCOUNTS_COLLECTION);
       transactionsCollection = database.getCollection(TRANSACTIONS_COLLECTION);
       backupsCollection = database.getCollection(BACKUPS_COLLECTION);
-      // asegurar índices
+
       ensureIndexes();
 
-      // iniciar executor
       transactionExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread t = new Thread(r, "Mongo-Transaction-Worker");
+        Thread t = new Thread(r, "UltraEconomy-Transaction-Worker");
         t.setDaemon(true);
         return t;
       });
-      runningTransactions = true;
-      transactionExecutor.scheduleAtFixedRate(this::checkAndApplyTransactions, 0, 2, TimeUnit.SECONDS);
 
-      CobbleUtils.LOGGER.info("Connected to MongoDB at " + config.getUrl());
+      connected.set(true);
+
+      transactionExecutor.scheduleWithFixedDelay(
+        this::safeCheckAndApplyTransactions,
+        0,
+        2,
+        TimeUnit.SECONDS
+      );
+
+      CobbleUtils.LOGGER.info("Connected to MongoDB");
+
     } catch (Exception e) {
-      CobbleUtils.LOGGER.error("❌ Could not connect to MongoDB: " + e.getMessage());
-      mongoClient = null;
+      connected.set(false);
+      CobbleUtils.LOGGER.error("❌ Could not connect to MongoDB");
+      e.printStackTrace();
     }
   }
+
+  private void safeCheckAndApplyTransactions() {
+    if (!connected.get() || shuttingDown.get()) return;
+
+    try {
+      checkAndApplyTransactions();
+    } catch (Exception e) {
+      CobbleUtils.LOGGER.error("Transaction worker crashed");
+      e.printStackTrace();
+    }
+  }
+
 
   private void ensureIndexes() {
     try {
@@ -119,16 +153,38 @@ public class MongoDBClient extends DatabaseClient {
   }
 
   @Override
-  public void disconnect() {
+  public synchronized void disconnect() {
+    if (!connected.get()) return;
+
+    shuttingDown.set(true);
+    connected.set(false);
+
     if (transactionExecutor != null) {
-      runningTransactions = false;
-      CobbleUtils.shutdownAndAwait(transactionExecutor);
+      transactionExecutor.shutdown();
+      try {
+        if (!transactionExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+          transactionExecutor.shutdownNow();
+        }
+      } catch (InterruptedException e) {
+        transactionExecutor.shutdownNow();
+        Thread.currentThread().interrupt();
+      }
+      transactionExecutor = null;
     }
+
     if (mongoClient != null) {
       mongoClient.close();
-      CobbleUtils.LOGGER.info("Disconnected from MongoDB.");
+      mongoClient = null;
     }
+
+    database = null;
+    accountsCollection = null;
+    transactionsCollection = null;
+    backupsCollection = null;
+
+    CobbleUtils.LOGGER.info("Disconnected from MongoDB safely");
   }
+
 
   @Override
   public void invalidate(UUID playerUUID) {
@@ -327,6 +383,7 @@ public class MongoDBClient extends DatabaseClient {
 
 
   private void checkAndApplyTransactions() {
+    if (shuttingDown.get()) return;
     if (!runningTransactions || UltraEconomy.server == null) return;
 
     var players = UltraEconomy.server.getPlayerManager().getPlayerList();
@@ -338,6 +395,7 @@ public class MongoDBClient extends DatabaseClient {
 
     try {
       Document tx;
+      if (shuttingDown.get()) return;
       while ((tx = transactionsCollection.findOneAndUpdate(
         Filters.and(
           Filters.eq(FIELD_PROCESSED, false),
