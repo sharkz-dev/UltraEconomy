@@ -14,6 +14,7 @@ import com.mongodb.MongoNamespace;
 import com.mongodb.client.*;
 import com.mongodb.client.model.*;
 import net.minecraft.entity.Entity;
+import net.minecraft.server.network.ServerPlayerEntity;
 import org.bson.Document;
 import org.bson.UuidRepresentation;
 import org.bson.types.Decimal128;
@@ -90,6 +91,7 @@ public class MongoDBClient extends DatabaseClient {
         return t;
       });
 
+      runningTransactions = true;
       connected.set(true);
 
       transactionExecutor.scheduleWithFixedDelay(
@@ -109,7 +111,10 @@ public class MongoDBClient extends DatabaseClient {
   }
 
   private void safeCheckAndApplyTransactions() {
-    if (!connected.get() || shuttingDown.get()) return;
+    if (!connected.get() || shuttingDown.get()) {
+      CobbleUtils.LOGGER.info(UltraEconomy.MOD_ID, "Skipping transaction processing, not connected or shutting down.");
+      return;
+    }
 
     try {
       checkAndApplyTransactions();
@@ -155,7 +160,7 @@ public class MongoDBClient extends DatabaseClient {
   @Override
   public synchronized void disconnect() {
     if (!connected.get()) return;
-
+    runningTransactions = false;
     shuttingDown.set(true);
     connected.set(false);
 
@@ -302,14 +307,16 @@ public class MongoDBClient extends DatabaseClient {
     }
   }
 
-  @Override public List<Account> getAccounts(int limit, int page) {
+  @Override
+  public List<Account> getAccounts(int limit, int page) {
     return accountsCollection.find().limit(limit)
       .skip((Math.max(page - 1, 0)) * limit)
       .map(Account::fromDocument)
       .into(new ArrayList<>());
   }
 
-  @Override public List<Transaction> getTransactions(UUID uuid, int limit) {
+  @Override
+  public List<Transaction> getTransactions(UUID uuid, int limit) {
     var filter = Filters.eq(FIELD_ACCOUNT_UUID, uuid.toString());
     return transactionsCollection.find(filter)
       .limit(limit)
@@ -317,7 +324,8 @@ public class MongoDBClient extends DatabaseClient {
       .into(new ArrayList<>());
   }
 
-  @Override public Account getAccountByName(String name) {
+  @Override
+  public Account getAccountByName(String name) {
     var filter = Filters.eq(FIELD_PLAYER_NAME, name);
     Document doc = accountsCollection.find(filter).first();
     if (doc != null) {
@@ -383,8 +391,18 @@ public class MongoDBClient extends DatabaseClient {
 
 
   private void checkAndApplyTransactions() {
-    if (shuttingDown.get()) return;
-    if (!runningTransactions || UltraEconomy.server == null) return;
+    if (shuttingDown.get()) {
+      CobbleUtils.LOGGER.info(UltraEconomy.MOD_ID, "Skipping transaction processing, shutting down.");
+      return;
+    }
+    if (!runningTransactions) {
+      CobbleUtils.LOGGER.info(UltraEconomy.MOD_ID, "Skipping transaction processing, not running.");
+      return;
+    }
+    if (UltraEconomy.server == null) {
+      CobbleUtils.LOGGER.info(UltraEconomy.MOD_ID, "Skipping transaction processing, server not ready.");
+      return;
+    }
 
     var players = UltraEconomy.server.getPlayerManager().getPlayerList();
     List<String> uuids = players.stream()
@@ -395,7 +413,10 @@ public class MongoDBClient extends DatabaseClient {
 
     try {
       Document tx;
-      if (shuttingDown.get()) return;
+      if (shuttingDown.get()) {
+        CobbleUtils.LOGGER.info(UltraEconomy.MOD_ID, "Aborting transaction processing, shutting down.");
+        return;
+      }
       while ((tx = transactionsCollection.findOneAndUpdate(
         Filters.and(
           Filters.eq(FIELD_PROCESSED, false),
@@ -403,13 +424,12 @@ public class MongoDBClient extends DatabaseClient {
         ),
         Updates.set(FIELD_PROCESSED, true)
       )) != null) {
-
         UUID uuid = UUID.fromString(tx.getString(FIELD_ACCOUNT_UUID));
+        ServerPlayerEntity player = UltraEconomy.server.getPlayerManager().getPlayer(uuid);
         Account account = getCachedAccount(uuid);
-        if (account == null) {
-          if (UltraEconomy.config.isDebug()) {
+        if (account == null || player == null || player.isDisconnected()) {
+          if (UltraEconomy.config.isDebug())
             CobbleUtils.LOGGER.warn("Account not found in cache for transaction: " + tx.toJson());
-          }
           transactionsCollection.updateOne(
             Filters.eq("_id", tx.getObjectId("_id")),
             Updates.set(FIELD_PROCESSED, false)
@@ -452,10 +472,8 @@ public class MongoDBClient extends DatabaseClient {
             continue;
           }
         }
-
         saveOrUpdateAccount(account);
-        DatabaseFactory.ACCOUNTS.put(uuid, account);
-
+        //DatabaseFactory.ACCOUNTS.put(uuid, account);
         if (CobbleUtils.config.isDebug()) {
           CobbleUtils.LOGGER.info("Processed transaction: " + tx.toJson());
         }

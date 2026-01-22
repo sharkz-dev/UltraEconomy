@@ -70,7 +70,7 @@ public class Transaction {
     boolean processed = doc.getBoolean(FIELD_PROCESSED);
     Instant timestamp = doc.containsKey("timestamp") ?
       doc.getDate("timestamp").toInstant() : Instant.now();
-    String reason = doc.getString(FIELD_REASON);
+    String reason = doc.containsKey(FIELD_REASON) ? doc.getString(FIELD_REASON) : null;
     String transferredToAccountUUIDStr = doc.getString(FIELD_TRANSFERRED_TO_ACCOUNT_UUID);
     UUID transferedToAccountUUID = transferredToAccountUUIDStr != null ?
       UUID.fromString(transferredToAccountUUIDStr) : null;
