@@ -81,6 +81,15 @@ public class PayCommand {
     UltraEconomy.runAsync(() -> {
       Currency currency = Currencies.getCurrency(currencyId);
 
+      // If ammount is negative or zero
+      if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+        UltraEconomy.lang.getMessageInvalidAmount().sendMessage(
+          executor,
+          UltraEconomy.lang.getPrefix(),
+          false
+        );
+        return;
+      }
       if (!DatabaseFactory.INSTANCE.hasEnoughBalance(executor.getUuid(), currency, amount)) return;
 
       UUID targetUUID = CobbleUtilsSuggests.SUGGESTS_PLAYER_OFFLINE_AND_ONLINE.getPlayerUUIDWithName(target);
