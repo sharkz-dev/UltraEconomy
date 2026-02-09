@@ -1,10 +1,15 @@
 plugins {
-  id 'fabric-loom' version '1.11-SNAPSHOT'
+  id 'fabric-loom' version '1.14.10'
   id 'maven-publish'
   id "com.modrinth.minotaur" version "2.+"
 }
 
 ext.hash_id = ""
+
+base {
+  archivesName = project.archives_base_name
+}
+
 
 // Leer isDev desde gradle.properties (default: false)
 def isDev = project.hasProperty("isDev") ? project.property("isDev").toBoolean() : false
@@ -23,8 +28,6 @@ if (isDev) {
   }
 }
 
-// Configurar el nombre del archivo
-archivesBaseName = project.archives_base_name
 
 // Version del mod (con sufijo dev si corresponde)
 version = project.mod_version + (isDev ? "-dev-${hash_id}" : "")
@@ -171,7 +174,7 @@ jar {
 publishing {
   publications {
     create("mavenJava", MavenPublication) {
-      artifactId = project.archivesBaseName
+      artifactId = project.archives_base_name
       from components.java
     }
   }
