@@ -2,7 +2,7 @@ package com.kingpixel.ultraeconomy.mixins.beconomy;
 
 import com.kingpixel.ultraeconomy.UltraEconomy;
 import com.kingpixel.ultraeconomy.api.UltraEconomyApi;
-import org.beconomy.api.BlanketEconomyAPI;
+import org.krripe.beconomy.api.BlanketEconomyAPI;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
