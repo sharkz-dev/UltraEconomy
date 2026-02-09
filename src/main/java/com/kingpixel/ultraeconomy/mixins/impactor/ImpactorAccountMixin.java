@@ -6,8 +6,11 @@ import net.impactdev.impactor.api.economy.accounts.Account;
 import net.impactdev.impactor.api.economy.currency.Currency;
 import net.impactdev.impactor.api.economy.transactions.EconomyTransaction;
 import net.impactdev.impactor.api.economy.transactions.EconomyTransferTransaction;
+import net.impactdev.impactor.api.economy.transactions.details.EconomyResultType;
 import net.impactdev.impactor.api.economy.transactions.details.EconomyTransactionType;
 import net.impactdev.impactor.core.economy.accounts.ImpactorAccount;
+import net.impactdev.impactor.core.economy.transactions.ImpactorEconomyTransaction;
+import net.impactdev.impactor.core.economy.transactions.ImpactorEconomyTransferTransaction;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -35,12 +38,15 @@ public abstract class ImpactorAccountMixin {
   private void depositAsync(BigDecimal amount, CallbackInfoReturnable<EconomyTransaction> cir) {
     if (UltraEconomy.migrationDone) {
       ImpactorAccount self = (ImpactorAccount) (Object) this;
-      UltraEconomyApi.deposit(self.owner(), getCurrencyId(self.currency()), amount);
-      cir.setReturnValue(EconomyTransaction.compose()
+      var builder = ImpactorEconomyTransaction.builder()
         .account(self)
         .amount(amount)
-        .type(EconomyTransactionType.DEPOSIT)
-        .build());
+        .type(EconomyTransactionType.DEPOSIT);
+      if (UltraEconomyApi.deposit(self.owner(), getCurrencyId(self.currency()), amount)) {
+        cir.setReturnValue(builder.result(EconomyResultType.SUCCESS).build());
+      } else {
+        cir.setReturnValue(builder.result(EconomyResultType.FAILED).build());
+      }
     }
   }
 
@@ -51,12 +57,15 @@ public abstract class ImpactorAccountMixin {
                         CallbackInfoReturnable<EconomyTransaction> cir) {
     if (UltraEconomy.migrationDone) {
       ImpactorAccount self = (ImpactorAccount) (Object) this;
-      UltraEconomyApi.withdraw(self.owner(), getCurrencyId(self.currency()), amount);
-      cir.setReturnValue(EconomyTransaction.compose()
+      var builder = ImpactorEconomyTransaction.builder()
         .account(self)
         .amount(amount)
-        .type(EconomyTransactionType.WITHDRAW)
-        .build());
+        .type(EconomyTransactionType.WITHDRAW);
+      if (UltraEconomyApi.withdraw(self.owner(), getCurrencyId(self.currency()), amount)) {
+        cir.setReturnValue(builder.result(EconomyResultType.FAILED).build());
+      } else {
+        cir.setReturnValue(builder.result(EconomyResultType.SUCCESS).build());
+      }
     }
   }
 
@@ -65,12 +74,15 @@ public abstract class ImpactorAccountMixin {
   private void transfer(Account target, BigDecimal amount, CallbackInfoReturnable<EconomyTransferTransaction> cir) {
     if (UltraEconomy.migrationDone) {
       ImpactorAccount self = (ImpactorAccount) (Object) this;
-      UltraEconomyApi.transfer(self.owner(), target.owner(), getCurrencyId(self.currency()), amount);
-      cir.setReturnValue(EconomyTransferTransaction.compose()
+      var builder = ImpactorEconomyTransferTransaction.builder()
         .from(self)
         .to(target)
-        .amount(amount)
-        .build());
+        .amount(amount);
+      if (UltraEconomyApi.transfer(self.owner(), target.owner(), getCurrencyId(self.currency()), amount)) {
+        cir.setReturnValue(builder.result(EconomyResultType.SUCCESS).build());
+      } else {
+        cir.setReturnValue(builder.result(EconomyResultType.FAILED).build());
+      }
     }
   }
 
@@ -101,9 +113,7 @@ public abstract class ImpactorAccountMixin {
       ImpactorAccount self = (ImpactorAccount) (Object) this;
       var account = UltraEconomyApi.getAccount(self.owner());
       BigDecimal balance = BigDecimal.ZERO;
-      if (account != null) {
-        balance = UltraEconomyApi.getBalance(self.owner(), getCurrencyId(self.currency()));
-      }
+      if (account != null) balance = UltraEconomyApi.getBalance(self.owner(), getCurrencyId(self.currency()));
       cir.setReturnValue(balance);
     }
   }
