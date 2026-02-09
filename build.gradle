@@ -8,43 +8,41 @@ base {
   archivesName = project.archives_base_name
 }
 
-ext.hash_id = null
+// Variable global
+ext.HASH_ID = null
 
+// Leer isDev desde gradle.properties (default: false)
 def isDev = project.hasProperty("isDev") ? project.property("isDev").toBoolean() : false
 
+// Obtener hash de Git
 if (isDev) {
   try {
     def stdout = new ByteArrayOutputStream()
     exec {
-      workingDir project.rootDir // <- asegúrate de ejecutar en la raíz del repo
+      workingDir project.rootDir
       commandLine 'git', 'rev-parse', '--short', 'HEAD'
       standardOutput = stdout
-      errorOutput = new ByteArrayOutputStream() // evita errores en consola
-      ignoreExitValue = true // no fallar si git falla
+      ignoreExitValue = true
     }
-    def result = stdout.toString().trim()
-    if (result && !result.isEmpty()) {
-      ext.hash_id = result
+    def hash = stdout.toString().trim()
+    if (hash) {
+      project.ext.HASH_ID = hash
+    } else {
+      def githubSha = System.getenv("GITHUB_SHA")
+      project.ext.HASH_ID = githubSha ? githubSha.take(7) : "unknown"
     }
   } catch (Exception ignored) {
-    ext.hash_id = null
+    project.ext.HASH_ID = "unknown"
   }
-
-  // Fallback GitHub Actions
-  if (!hash_id) {
-    def githubSha = System.getenv("GITHUB_SHA")
-    if (githubSha) {
-      ext.hash_id = githubSha.take(7)
-    }
-  }
+  println("Git hash detectado: ${project.ext.HASH_ID}")
+} else {
+  project.ext.HASH_ID = ""
 }
 
-def devSuffix = ""
-if (isDev) {
-  devSuffix = hash_id ? "-dev-${hash_id}" : "-dev"
-}
-
+// Construcción de la versión final
+def devSuffix = isDev && project.ext.HASH_ID ? "-dev-${project.ext.HASH_ID}" : ""
 version = project.mod_version + devSuffix
+println("Versión final del mod: ${version}")
 
 group = project.maven_group
 
@@ -59,10 +57,18 @@ loom {
   }
 }
 
-fabricApi {
-  configureDataGeneration {
-    client = true
+tasks.named('jar') {
+  archiveBaseName.set(project.archives_base_name)
+  archiveVersion.set(version)
+  archiveClassifier.set('')
+  // 🔹 Esto se hace en tiempo de configuración, no en doFirst
+  from("LICENSE") {
+    rename { "${it}_${project.archives_base_name}" }
   }
+}
+
+fabricApi {
+  configureDataGeneration { client = true }
 }
 
 modrinth {
@@ -177,12 +183,6 @@ java {
     toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
   }
   withSourcesJar()
-}
-
-jar {
-  from("LICENSE") {
-    rename { "${it}_${project.archives_base_name}" }
-  }
 }
 
 publishing {
