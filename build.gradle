@@ -4,33 +4,47 @@ plugins {
   id "com.modrinth.minotaur" version "2.+"
 }
 
-ext.hash_id = ""
-
 base {
   archivesName = project.archives_base_name
 }
 
+ext.hash_id = null
 
-// Leer isDev desde gradle.properties (default: false)
 def isDev = project.hasProperty("isDev") ? project.property("isDev").toBoolean() : false
 
-// Si es dev, generar hash de git, sino no hace falta
 if (isDev) {
   try {
     def stdout = new ByteArrayOutputStream()
     exec {
+      workingDir project.rootDir // <- asegúrate de ejecutar en la raíz del repo
       commandLine 'git', 'rev-parse', '--short', 'HEAD'
       standardOutput = stdout
+      errorOutput = new ByteArrayOutputStream() // evita errores en consola
+      ignoreExitValue = true // no fallar si git falla
     }
-    ext.hash_id = stdout.toString().trim()
-  } catch (Exception e) {
-    ext.hash_id = "dev"
+    def result = stdout.toString().trim()
+    if (result && !result.isEmpty()) {
+      ext.hash_id = result
+    }
+  } catch (Exception ignored) {
+    ext.hash_id = null
+  }
+
+  // Fallback GitHub Actions
+  if (!hash_id) {
+    def githubSha = System.getenv("GITHUB_SHA")
+    if (githubSha) {
+      ext.hash_id = githubSha.take(7)
+    }
   }
 }
 
+def devSuffix = ""
+if (isDev) {
+  devSuffix = hash_id ? "-dev-${hash_id}" : "-dev"
+}
 
-// Version del mod (con sufijo dev si corresponde)
-version = project.mod_version + (isDev ? "-dev-${hash_id}" : "")
+version = project.mod_version + devSuffix
 
 group = project.maven_group
 
@@ -167,7 +181,7 @@ java {
 
 jar {
   from("LICENSE") {
-    rename { "${it}_${project.archivesBaseName}" }
+    rename { "${it}_${project.archives_base_name}" }
   }
 }
 
